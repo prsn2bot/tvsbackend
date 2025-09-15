@@ -1,0 +1,14 @@
+node_modules/
+# dist/
+.env
+coverage/
+uploads/
+*.log
+.cursor/rules
+.cursor/settings
+.cursor/settings.json
+.cursor/settings.jsonc
+.cursor/settings.jsonc.backup
+.cursor/settings.jsonc.backup.1
+.cursor/settings.jsonc.backup.2
+

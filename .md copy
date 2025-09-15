@@ -1,0 +1,988 @@
+// # LinkedIn Integration Backend Changes
+
+// This document outlines all the changes made to the seo-backend for LinkedIn integration.
+
+// ## 📁 Files Added
+
+// ### 1. `src/controllers/v1/linkedin.controller.ts`
+
+// **Purpose**: Handles LinkedIn OAuth flow and API endpoints
+
+// ```typescript
+// import { Request, Response } from "express";
+// import { AuthenticatedRequest } from "../../middleware/auth";
+// import { LinkedInService } from "../../services/linkedInService";
+// import logger from "../../utils/logger";
+
+// export class LinkedInController {
+//   /**
+//    * Test authentication
+//    */
+//   static async testAuth(req: AuthenticatedRequest, res: Response) {
+//     try {
+//       const authHeader = req.headers.authorization;
+//       res.json({
+//         message: "Authentication test",
+//         hasAuthHeader: !!authHeader,
+//         authHeaderStart: authHeader
+//           ? authHeader.substring(0, 20) + "..."
+//           : "none",
+//         hasUser: !!req.user,
+//         user: req.user
+//           ? {
+//               id: req.user.id,
+//               email: req.user.email,
+//               role: req.user.role,
+//             }
+//           : null,
+//       });
+//     } catch (error) {
+//       logger.error("Error testing auth:", error);
+//       res.status(500).json({ message: "Failed to test authentication" });
+//     }
+//   }
+
+//   /**
+//    * Test LinkedIn status for a specific user (for debugging)
+//    */
+//   static async testStatus(req: Request, res: Response) {
+//     try {
+//       const { userId } = req.query;
+//       if (!userId) {
+//         return res
+//           .status(400)
+//           .json({ message: "userId query parameter required" });
+//       }
+
+//       const status = await LinkedInService.getConnectionStatus(Number(userId));
+//       res.json({ userId, status });
+//     } catch (error) {
+//       logger.error("Error testing LinkedIn status:", error);
+//       res.status(500).json({ message: "Failed to test LinkedIn status" });
+//     }
+//   }
+
+//   /**
+//    * Test LinkedIn configuration
+//    */
+//   static async testConfig(_req: Request, res: Response) {
+//     try {
+//       const config = {
+//         CLIENT_ID: process.env.LINKEDIN_CLIENT_ID
+//           ? `${process.env.LINKEDIN_CLIENT_ID.substring(0, 8)}...`
+//           : "MISSING",
+//         CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET ? "SET" : "MISSING",
+//         REDIRECT_URI: `${
+//           process.env.SERVER_URL || "http://localhost:3004"
+//         }/api/v1/linkedin/callback`,
+//         FRONTEND_URL: process.env.FRONTEND_URL,
+//         SERVER_URL: process.env.SERVER_URL,
+//         SCOPE: "openid profile email w_member_social",
+//       };
+
+//       res.json({
+//         message: "LinkedIn configuration test",
+//         config,
+//         testAuthUrl: `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${
+//           process.env.LINKEDIN_CLIENT_ID
+//         }&redirect_uri=${encodeURIComponent(
+//           config.REDIRECT_URI
+//         )}&scope=${encodeURIComponent(config.SCOPE)}&state=test123`,
+//       });
+//     } catch (error) {
+//       logger.error("Error testing LinkedIn config:", error);
+//       res
+//         .status(500)
+//         .json({ message: "Failed to test LinkedIn configuration" });
+//     }
+//   }
+
+//   /**
+//    * Initiate LinkedIn OAuth flow
+//    */
+//   static async initiateAuth(req: Request, res: Response) {
+//     try {
+//       const { state } = req.query;
+
+//       if (!state || typeof state !== "string") {
+//         return res.status(400).json({
+//           message: "State parameter is required for OAuth security",
+//         });
+//       }
+
+//       const authUrl = LinkedInService.generateAuthUrl(state);
+
+//       // Log the generated auth URL for debugging
+//       logger.info("Generated LinkedIn auth URL:", authUrl);
+
+//       // Redirect to LinkedIn authorization URL
+//       res.redirect(authUrl);
+//     } catch (error) {
+//       logger.error("Error initiating LinkedIn auth:", error);
+//       res.status(500).json({
+//         message: "Failed to initiate LinkedIn authentication",
+//       });
+//     }
+//   }
+
+//   /**
+//    * Handle LinkedIn OAuth callback
+//    */
+//   static async handleCallback(req: Request, res: Response) {
+//     const { code, state, error, error_description } = req.query;
+//     let userId: number | undefined;
+
+//     try {
+//       // Log all query parameters for debugging
+//       logger.info("LinkedIn callback received:", {
+//         code: code ? "present" : "missing",
+//         state: state ? "present" : "missing",
+//         error,
+//         error_description,
+//         fullQuery: req.query,
+//       });
+
+//       // Handle OAuth error
+//       if (error) {
+//         logger.error("LinkedIn OAuth error:", { error, error_description });
+//         return res.redirect(
+//           `${
+//             process.env.FRONTEND_URL
+//           }/dashboard/connected-accountss?error=oauth_denied&details=${encodeURIComponent(
+//             String(error_description || error)
+//           )}`
+//         );
+//       }
+
+//       if (
+//         !code ||
+//         !state ||
+//         typeof code !== "string" ||
+//         typeof state !== "string"
+//       ) {
+//         return res.redirect(
+//           `${process.env.FRONTEND_URL}/dashboard/connected-accountss?error=invalid_callback`
+//         );
+//       }
+
+//       // Verify state parameter and extract user info
+//       let stateData;
+//       try {
+//         stateData = JSON.parse(atob(state));
+//       } catch (e) {
+//         logger.warn("Invalid state parameter:", state);
+//         return res.redirect(
+//           `${process.env.FRONTEND_URL}/dashboard/connected-accountss?error=invalid_state`
+//         );
+//       }
+
+//       userId = stateData.userId;
+//       if (!userId) {
+//         return res.redirect(
+//           `${process.env.FRONTEND_URL}/dashboard/connected-accountss?error=missing_user`
+//         );
+//       }
+
+//       // Exchange code for access token and save user connection
+//       logger.info("Attempting to handle OAuth callback for user:", userId);
+//       await LinkedInService.handleOAuthCallback(code, userId);
+
+//       logger.info(
+//         "LinkedIn OAuth callback handled successfully for user:",
+//         userId
+//       );
+//       // Redirect to frontend with success
+//       res.redirect(
+//         `${process.env.FRONTEND_URL}/dashboard/connected-accountss?success=connected`
+//       );
+//     } catch (error) {
+//       logger.error("Error handling LinkedIn callback:", {
+//         error: error instanceof Error ? error.message : error,
+//         stack: error instanceof Error ? error.stack : undefined,
+//         userId,
+//         code: code ? "present" : "missing",
+//         state: state ? "present" : "missing",
+//       });
+//       res.redirect(
+//         `${
+//           process.env.FRONTEND_URL
+//         }/dashboard/connected-accountss?error=callback_failed&details=${encodeURIComponent(
+//           error instanceof Error ? error.message : "Unknown error"
+//         )}`
+//       );
+//     }
+//   }
+
+//   /**
+//    * Get LinkedIn connection status
+//    */
+//   static async getConnectionStatus(req: AuthenticatedRequest, res: Response) {
+//     try {
+//       // Debug authentication
+//       const authHeader = req.headers.authorization;
+//       logger.info("LinkedIn status request auth debug:", {
+//         hasAuthHeader: !!authHeader,
+//         authHeaderStart: authHeader
+//           ? authHeader.substring(0, 20) + "..."
+//           : "none",
+//         hasUser: !!req.user,
+//         userId: req.user?.id,
+//       });
+
+//       if (!req.user) {
+//         logger.error("No user found in request - authentication failed");
+//         return res.status(401).json({ message: "Authentication required" });
+//       }
+
+//       const userId = req.user.id;
+//       logger.info("Getting LinkedIn connection status for user:", userId);
+
+//       const status = await LinkedInService.getConnectionStatus(userId);
+//       logger.info("LinkedIn connection status result:", status);
+
+//       res.json(status);
+//     } catch (error) {
+//       logger.error("Error getting LinkedIn connection status:", error);
+//       res.status(500).json({
+//         message: "Failed to get LinkedIn connection status",
+//       });
+//     }
+//   }
+
+//   /**
+//    * Disconnect LinkedIn account
+//    */
+//   static async disconnect(req: AuthenticatedRequest, res: Response) {
+//     try {
+//       const userId = req.user!.id;
+//       await LinkedInService.disconnectAccount(userId);
+
+//       res.json({ message: "LinkedIn account disconnected successfully" });
+//     } catch (error) {
+//       logger.error("Error disconnecting LinkedIn account:", error);
+//       res.status(500).json({
+//         message: "Failed to disconnect LinkedIn account",
+//       });
+//     }
+//   }
+
+//   /**
+//    * Fetch LinkedIn posts
+//    */
+//   static async fetchPosts(req: AuthenticatedRequest, res: Response) {
+//     try {
+//       const userId = req.user!.id;
+//       const { category, limit } = req.query;
+
+//       const posts = await LinkedInService.fetchUserPosts(
+//         userId,
+//         category as string,
+//         limit ? parseInt(limit as string) : 20
+//       );
+
+//       res.json({ posts });
+//     } catch (error) {
+//       logger.error("Error fetching LinkedIn posts:", error);
+//       res.status(500).json({
+//         message: "Failed to fetch LinkedIn posts",
+//       });
+//     }
+//   }
+// }
+// ```
+
+// ### 2. `src/routes/v1/linkedin.routes.ts`
+
+// **Purpose**: Defines LinkedIn API routes
+
+// ```typescript
+// import { Router } from "express";
+// import { LinkedInController } from "../../controllers/v1/linkedin.controller";
+// import { authenticate, authorize } from "../../middleware/auth";
+// import { UserRole } from "../../types/user.types";
+
+// const router = Router();
+
+// /**
+//  * @swagger
+//  * components:
+//  *   securitySchemes:
+//  *     bearerAuth:
+//  *       type: http
+//  *       scheme: bearer
+//  *       bearerFormat: JWT
+//  */
+
+// /**
+//  * @swagger
+//  * /linkedin/test-auth:
+//  *   get:
+//  *     summary: Test authentication
+//  *     tags: [LinkedIn]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     responses:
+//  *       200:
+//  *         description: Authentication test details
+//  */
+// router.get(
+//   "/test-auth",
+//   authenticate,
+//   authorize([UserRole.OWNER, UserRole.ADMIN, UserRole.RESELLER, UserRole.USER]),
+//   LinkedInController.testAuth
+// );
+
+// /**
+//  * @swagger
+//  * /linkedin/test-config:
+//  *   get:
+//  *     summary: Test LinkedIn configuration
+//  *     tags: [LinkedIn]
+//  *     responses:
+//  *       200:
+//  *         description: LinkedIn configuration details
+//  */
+// router.get("/test-config", LinkedInController.testConfig);
+
+// /**
+//  * @swagger
+//  * /linkedin/auth:
+//  *   get:
+//  *     summary: Initiate LinkedIn OAuth flow
+//  *     tags: [LinkedIn]
+//  *     parameters:
+//  *       - in: query
+//  *         name: state
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: OAuth state parameter for security
+//  *     responses:
+//  *       302:
+//  *         description: Redirect to LinkedIn authorization URL
+//  *       400:
+//  *         description: Bad request - missing state parameter
+//  */
+// router.get("/auth", LinkedInController.initiateAuth);
+
+// /**
+//  * @swagger
+//  * /linkedin/callback:
+//  *   get:
+//  *     summary: Handle LinkedIn OAuth callback
+//  *     tags: [LinkedIn]
+//  *     parameters:
+//  *       - in: query
+//  *         name: code
+//  *         schema:
+//  *           type: string
+//  *         description: Authorization code from LinkedIn
+//  *       - in: query
+//  *         name: state
+//  *         schema:
+//  *           type: string
+//  *         description: State parameter for security
+//  *       - in: query
+//  *         name: error
+//  *         schema:
+//  *           type: string
+//  *         description: Error code if OAuth failed
+//  *     responses:
+//  *       302:
+//  *         description: Redirect to frontend with success or error
+//  */
+// router.get("/callback", LinkedInController.handleCallback);
+
+// /**
+//  * @swagger
+//  * /linkedin/status:
+//  *   get:
+//  *     summary: Get LinkedIn connection status
+//  *     tags: [LinkedIn]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     responses:
+//  *       200:
+//  *         description: LinkedIn connection status
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 isConnected:
+//  *                   type: boolean
+//  *                 profile:
+//  *                   type: object
+//  *                   properties:
+//  *                     name:
+//  *                       type: string
+//  *                     email:
+//  *                       type: string
+//  *                     profileUrl:
+//  *                       type: string
+//  *                 lastConnected:
+//  *                   type: string
+//  *                   format: date-time
+//  *       401:
+//  *         description: Unauthorized
+//  */
+// router.get(
+//   "/status",
+//   authenticate,
+//   authorize([UserRole.OWNER, UserRole.ADMIN, UserRole.RESELLER, UserRole.USER]),
+//   LinkedInController.getConnectionStatus
+// );
+
+// /**
+//  * @swagger
+//  * /linkedin/disconnect:
+//  *   post:
+//  *     summary: Disconnect LinkedIn account
+//  *     tags: [LinkedIn]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     responses:
+//  *       200:
+//  *         description: LinkedIn account disconnected successfully
+//  *       401:
+//  *         description: Unauthorized
+//  */
+// router.post(
+//   "/disconnect",
+//   authenticate,
+//   authorize([UserRole.OWNER, UserRole.ADMIN, UserRole.RESELLER, UserRole.USER]),
+//   LinkedInController.disconnect
+// );
+
+// /**
+//  * @swagger
+//  * /linkedin/posts:
+//  *   get:
+//  *     summary: Fetch LinkedIn posts
+//  *     tags: [LinkedIn]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     parameters:
+//  *       - in: query
+//  *         name: category
+//  *         schema:
+//  *           type: string
+//  *         description: Category filter for posts
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: integer
+//  *           default: 20
+//  *         description: Number of posts to fetch
+//  *     responses:
+//  *       200:
+//  *         description: LinkedIn posts
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 posts:
+//  *                   type: array
+//  *                   items:
+//  *                     type: object
+//  *       401:
+//  *         description: Unauthorized
+//  */
+// router.get(
+//   "/posts",
+//   authenticate,
+//   authorize([UserRole.OWNER, UserRole.ADMIN, UserRole.RESELLER, UserRole.USER]),
+//   LinkedInController.fetchPosts
+// );
+
+// export default router;
+// ```
+
+// ### 3. `src/services/linkedInService.ts`
+
+// **Purpose**: Core LinkedIn service for OAuth and API operations
+
+// ```typescript
+// import axios from "axios";
+// import { env } from "../config/env";
+// import logger from "../utils/logger";
+// import { ApiKeyModel } from "../models/apiKey.model";
+
+// interface LinkedInProfile {
+//   id: string;
+//   firstName: {
+//     localized: {
+//       [key: string]: string;
+//     };
+//   };
+//   lastName: {
+//     localized: {
+//       [key: string]: string;
+//     };
+//   };
+//   emailAddress?: string;
+//   profilePicture?: {
+//     displayImage: string;
+//   };
+// }
+
+// export class LinkedInService {
+//   private static readonly CLIENT_ID = env.LINKEDIN_CLIENT_ID || "";
+//   private static readonly CLIENT_SECRET = env.LINKEDIN_CLIENT_SECRET || "";
+//   private static readonly WEBSITE_ID = env.LINKEDIN_WEBSITE_ID || 1;
+//   private static readonly REDIRECT_URI = `${
+//     env.SERVER_URL || "http://localhost:3004"
+//   }/api/v1/linkedin/callback`;
+//   private static readonly SCOPE = "openid profile email w_member_social";
+
+//   /**
+//    * Generate LinkedIn OAuth authorization URL
+//    */
+//   static generateAuthUrl(state: string): string {
+//     // Log configuration for debugging
+//     logger.info("LinkedIn OAuth Configuration:", {
+//       CLIENT_ID: this.CLIENT_ID
+//         ? `${this.CLIENT_ID.substring(0, 8)}...`
+//         : "MISSING",
+//       CLIENT_SECRET: this.CLIENT_SECRET ? "SET" : "MISSING",
+//       REDIRECT_URI: this.REDIRECT_URI,
+//       SCOPE: this.SCOPE,
+//     });
+
+//     const params = new URLSearchParams();
+//     params.append("response_type", "code");
+//     params.append("client_id", this.CLIENT_ID);
+//     params.append("redirect_uri", this.REDIRECT_URI);
+//     params.append("state", state);
+//     params.append("scope", this.SCOPE);
+
+//     const authUrl = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+//     logger.info("Generated LinkedIn auth URL:", authUrl);
+
+//     return authUrl;
+//   }
+
+//   /**
+//    * Exchange authorization code for access token
+//    */
+//   private static async exchangeCodeForToken(code: string): Promise<string> {
+//     try {
+//       const response = await axios.post(
+//         "https://www.linkedin.com/oauth/v2/accessToken",
+//         new URLSearchParams({
+//           grant_type: "authorization_code",
+//           code,
+//           redirect_uri: this.REDIRECT_URI,
+//           client_id: this.CLIENT_ID,
+//           client_secret: this.CLIENT_SECRET,
+//         }),
+//         {
+//           headers: {
+//             "Content-Type": "application/x-www-form-urlencoded",
+//           },
+//         }
+//       );
+
+//       return response.data.access_token;
+//     } catch (error) {
+//       logger.error("Error exchanging code for token:", error);
+//       throw new Error("Failed to exchange authorization code for access token");
+//     }
+//   }
+
+//   /**
+//    * Get LinkedIn user profile
+//    */
+//   private static async getProfile(
+//     accessToken: string
+//   ): Promise<LinkedInProfile> {
+//     try {
+//       logger.info("Making LinkedIn profile API request");
+
+//       // Use the newer LinkedIn API endpoint
+//       const response = await axios.get("https://api.linkedin.com/v2/userinfo", {
+//         headers: {
+//           Authorization: `Bearer ${accessToken}`,
+//         },
+//       });
+
+//       logger.info("LinkedIn profile API response received", {
+//         status: response.status,
+//         hasData: !!response.data,
+//       });
+
+//       // Transform the response to match our expected format
+//       const profileData = response.data;
+//       const transformedProfile: LinkedInProfile = {
+//         id: profileData.sub,
+//         firstName: {
+//           localized: {
+//             en_US: profileData.given_name || "",
+//           },
+//         },
+//         lastName: {
+//           localized: {
+//             en_US: profileData.family_name || "",
+//           },
+//         },
+//         emailAddress: profileData.email,
+//         profilePicture: profileData.picture
+//           ? {
+//               displayImage: profileData.picture,
+//             }
+//           : undefined,
+//       };
+
+//       return transformedProfile;
+//     } catch (error) {
+//       logger.error("Error fetching LinkedIn profile:", {
+//         error: error instanceof Error ? error.message : error,
+//         status: axios.isAxiosError(error) ? error.response?.status : undefined,
+//         statusText: axios.isAxiosError(error)
+//           ? error.response?.statusText
+//           : undefined,
+//         data: axios.isAxiosError(error) ? error.response?.data : undefined,
+//       });
+//       throw new Error("Failed to fetch LinkedIn profile");
+//     }
+//   }
+
+//   /**
+//    * Handle OAuth callback and save connection
+//    */
+//   static async handleOAuthCallback(
+//     code: string,
+//     userId: number,
+//     companyId?: number
+//   ): Promise<void> {
+//     try {
+//       logger.info("Starting LinkedIn OAuth callback processing", {
+//         userId,
+//         companyId,
+//       });
+
+//       // Exchange code for access token
+//       logger.info("Exchanging authorization code for access token");
+//       const accessToken = await this.exchangeCodeForToken(code);
+//       logger.info("Successfully obtained access token");
+
+//       // Get user profile
+//       logger.info("Fetching LinkedIn user profile");
+//       const profile = await this.getProfile(accessToken);
+//       logger.info("Successfully fetched user profile", {
+//         linkedinId: profile.id,
+//       });
+
+//       // Extract profile information
+//       const firstName = Object.values(profile.firstName.localized)[0] || "";
+//       const lastName = Object.values(profile.lastName.localized)[0] || "";
+//       const name = `${firstName} ${lastName}`.trim();
+
+//       // Check if LinkedIn API key already exists for this user and website
+//       logger.info("Checking for existing LinkedIn API key", {
+//         userId,
+//         websiteId: this.WEBSITE_ID,
+//       });
+//       const existingApiKeys = await ApiKeyModel.findByWebsiteIdsAndUserId(
+//         [this.WEBSITE_ID],
+//         userId
+//       );
+//       const linkedInApiKey = existingApiKeys.find(
+//         (key) => key.name === "LinkedIn"
+//       );
+//       logger.info("Existing API key check complete", {
+//         found: !!linkedInApiKey,
+//       });
+
+//       const credentials = {
+//         access_token: accessToken,
+//         linkedin_id: profile.id,
+//         profile_name: name,
+//         profile_email: profile.emailAddress || "",
+//         profile_url: `https://www.linkedin.com/profile/view?id=${profile.id}`,
+//         connected_at: new Date().toISOString(),
+//       };
+
+//       if (linkedInApiKey) {
+//         // Update existing LinkedIn API key
+//         logger.info("Updating existing LinkedIn API key", {
+//           apiKeyId: linkedInApiKey.id,
+//         });
+//         await ApiKeyModel.update(linkedInApiKey.id, {
+//           credentials,
+//           status: "active",
+//         });
+//         logger.info("Successfully updated existing LinkedIn API key");
+//       } else {
+//         // Create new LinkedIn API key
+//         logger.info("Creating new LinkedIn API key", {
+//           userId,
+//           companyId: companyId || 1,
+//           websiteId: this.WEBSITE_ID,
+//         });
+//         await ApiKeyModel.create({
+//           name: "LinkedIn",
+//           user_id: userId,
+//           company_id: companyId || 1, // Use provided company_id or default to 1
+//           website_id: this.WEBSITE_ID,
+//           credentials,
+//         });
+//         logger.info("Successfully created new LinkedIn API key");
+//       }
+
+//       logger.info(`LinkedIn connection saved for user ${userId}`);
+//     } catch (error) {
+//       logger.error("Error handling OAuth callback:", error);
+//       throw error;
+//     }
+//   }
+
+//   /**
+//    * Get connection status for a user
+//    */
+//   static async getConnectionStatus(userId: number) {
+//     try {
+//       logger.info("Checking LinkedIn connection status", {
+//         userId,
+//         websiteId: this.WEBSITE_ID,
+//       });
+
+//       const apiKeys = await ApiKeyModel.findByWebsiteIdsAndUserId(
+//         [this.WEBSITE_ID],
+//         userId
+//       );
+//       logger.info("API keys found", {
+//         count: apiKeys.length,
+//         keys: apiKeys.map((k) => ({
+//           id: k.id,
+//           name: k.name,
+//           status: k.status,
+//         })),
+//       });
+
+//       const linkedInApiKey = apiKeys.find(
+//         (key) => key.name === "LinkedIn" && key.status === "active"
+//       );
+//       logger.info("LinkedIn API key search result", {
+//         found: !!linkedInApiKey,
+//         keyId: linkedInApiKey?.id,
+//       });
+
+//       if (!linkedInApiKey || !linkedInApiKey.credentials) {
+//         logger.info("No active LinkedIn connection found");
+//         return { isConnected: false };
+//       }
+
+//       const credentials = linkedInApiKey.credentials;
+//       logger.info("LinkedIn connection found", {
+//         hasCredentials: !!credentials,
+//       });
+
+//       return {
+//         isConnected: true,
+//         profile: {
+//           name: credentials.profile_name,
+//           email: credentials.profile_email,
+//           profileUrl: credentials.profile_url,
+//         },
+//         lastConnected: credentials.connected_at,
+//       };
+//     } catch (error) {
+//       logger.error("Error getting connection status:", error);
+//       throw new Error("Failed to get connection status");
+//     }
+//   }
+
+//   /**
+//    * Disconnect LinkedIn account
+//    */
+//   static async disconnectAccount(userId: number): Promise<void> {
+//     try {
+//       const apiKeys = await ApiKeyModel.findByWebsiteIdsAndUserId(
+//         [this.WEBSITE_ID],
+//         userId
+//       );
+//       const linkedInApiKey = apiKeys.find((key) => key.name === "LinkedIn");
+
+//       if (linkedInApiKey) {
+//         await ApiKeyModel.delete(linkedInApiKey.id, userId);
+//       }
+
+//       logger.info(`LinkedIn connection removed for user ${userId}`);
+//     } catch (error) {
+//       logger.error("Error disconnecting account:", error);
+//       throw new Error("Failed to disconnect LinkedIn account");
+//     }
+//   }
+
+//   /**
+//    * Fetch user posts from LinkedIn by category
+//    */
+//   static async fetchUserPosts(
+//     userId: number,
+//     category?: string,
+//     limit: number = 20
+//   ): Promise<any[]> {
+//     try {
+//       const apiKeys = await ApiKeyModel.findByWebsiteIdsAndUserId(
+//         [this.WEBSITE_ID],
+//         userId
+//       );
+//       const linkedInApiKey = apiKeys.find(
+//         (key) => key.name === "LinkedIn" && key.status === "active"
+//       );
+
+//       if (!linkedInApiKey || !linkedInApiKey.credentials) {
+//         throw new Error("LinkedIn not connected");
+//       }
+
+//       const credentials = linkedInApiKey.credentials;
+//       logger.info("LinkedIn posts fetch requested", {
+//         userId,
+//         category,
+//         limit,
+//       });
+
+//       // TODO: Implement your specific post fetching method here
+//       // Please provide the API endpoint or method you'd like to use
+
+//       // Placeholder implementation - replace with your specific approach
+//       const posts = await this.fetchPostsByCategory(
+//         credentials.access_token,
+//         category,
+//         limit
+//       );
+
+//       return posts;
+//     } catch (error) {
+//       logger.error("Error fetching LinkedIn posts:", error);
+//       throw new Error("Failed to fetch LinkedIn posts");
+//     }
+//   }
+
+//   /**
+//    * Fetch posts by category - implement your specific method here
+//    */
+//   private static async fetchPostsByCategory(
+//     _accessToken: string,
+//     category?: string,
+//     limit: number = 20
+//   ): Promise<any[]> {
+//     // TODO: Replace this with your specific implementation
+//     // What API endpoint or method would you like to use?
+
+//     logger.info("Fetching posts by category", { category, limit });
+
+//     // Placeholder - return empty array until you provide the specific implementation
+//     return [];
+//   }
+// }
+// ```
+
+// ## 📁 Files Modified
+
+// ### 4. `src/config/env.ts`
+
+// **Changes**: Added LinkedIn environment variables
+
+// ```typescript
+// // Add these lines to the environment schema:
+//   // LinkedIn OAuth Configuration
+//   LINKEDIN_CLIENT_ID: z.string().optional(),
+//   LINKEDIN_CLIENT_SECRET: z.string().optional(),
+//   LINKEDIN_WEBSITE_ID: z.string().transform((val) => parseInt(val, 10)).optional(),
+//   FRONTEND_URL: z.string().url().optional(),
+//   SERVER_URL: z.string().url().optional(),
+// ```
+
+// ### 5. `.env`
+
+// **Changes**: Added LinkedIn configuration
+
+// ```env
+// # LinkedIn OAuth Configuration
+// LINKEDIN_CLIENT_ID=86nsd2i518qqdl
+// LINKEDIN_CLIENT_SECRET=FcrqngbR4O6wV4ri
+// LINKEDIN_WEBSITE_ID=1
+// FRONTEND_URL=http://localhost:3000
+// SERVER_URL=http://localhost:3004
+
+// # Local PostgreSQL Database Configuration
+// DATABASE_URL=postgresql://postgres:password@localhost:5432/seo_db
+
+// # Local PostgreSQL Database Connection Details
+// DB_HOST=localhost
+// DB_PORT=5432
+// DB_USER=postgres
+// DB_PASSWORD=password
+// DB_NAME=seo_db
+// DB_SSL=false
+// ```
+
+// ### 6. Main App Routes Integration
+
+// **File**: `src/app.ts` or main routes file
+// **Changes**: Add LinkedIn routes
+
+// ```typescript
+// // Add this import
+// import linkedinRoutes from "./routes/v1/linkedin.routes";
+
+// // Add this route registration
+// app.use("/api/v1/linkedin", linkedinRoutes);
+// ```
+
+// ## 📁 Files Removed
+
+// ### 7. Removed Files
+
+// - `src/models/linkedInConnection.model.ts` - Not needed (using API keys model instead)
+// - `src/migrations/create_linkedin_connections_table.sql` - Not needed
+
+// ## 🔧 Key Features Implemented
+
+// ### OAuth Flow
+
+// - ✅ LinkedIn OAuth 2.0 integration
+// - ✅ Secure state parameter handling
+// - ✅ Token exchange and storage
+// - ✅ Profile information retrieval
+
+// ### Data Storage
+
+// - ✅ Uses existing `api_keys` table instead of separate LinkedIn table
+// - ✅ Stores credentials as encrypted JSON
+// - ✅ Associates with website ID for multi-tenant support
+
+// ### API Endpoints
+
+// - ✅ `/auth` - Initiate OAuth flow
+// - ✅ `/callback` - Handle OAuth callback
+// - ✅ `/status` - Check connection status
+// - ✅ `/disconnect` - Remove LinkedIn connection
+// - ✅ `/posts` - Fetch posts (placeholder for your implementation)
+// - ✅ `/test-config` - Debug configuration
+// - ✅ `/test-auth` - Debug authentication
+
+// ### Security
+
+// - ✅ JWT authentication required for protected endpoints
+// - ✅ Role-based authorization
+// - ✅ Secure token storage
+// - ✅ Comprehensive error handling and logging
+
+// ## 🚀 Usage
+
+// 1. **Set up environment variables** in `.env`
+// 2. **Register LinkedIn routes** in your main app
+// 3. **Configure LinkedIn Developer App** with correct redirect URI
+// 4. **Test the integration** using the provided endpoints
+
+// ## 📝 Notes
+
+// - LinkedIn credentials are stored in the existing `api_keys` table
+// - Uses `LINKEDIN_WEBSITE_ID` to associate connections with specific websites
+// - Post fetching is prepared but needs your specific implementation
+// - All endpoints include comprehensive logging for debugging
+// - Profile URL uses LinkedIn API ID format

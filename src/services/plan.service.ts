@@ -1,0 +1,31 @@
+import { PlanModel } from "../models/plan.model";
+import { Plan } from "../types/plan.types";
+
+export class PlanService {
+  static async getAllPlans(): Promise<Plan[]> {
+    return await PlanModel.findAll();
+  }
+
+  static async getPlanById(id: number): Promise<Plan | null> {
+    return await PlanModel.findById(id);
+  }
+
+  static async createPlan(planData: {
+    name: string;
+    price_monthly: number;
+    features: any;
+  }): Promise<Plan> {
+    return await PlanModel.create(planData);
+  }
+
+  static async updatePlan(
+    id: number,
+    planData: Partial<{ name: string; price_monthly: number; features: any }>
+  ): Promise<Plan | null> {
+    return await PlanModel.update(id, planData);
+  }
+
+  static async deletePlan(id: number): Promise<boolean> {
+    return await PlanModel.delete(id);
+  }
+}
