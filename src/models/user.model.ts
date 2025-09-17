@@ -190,4 +190,13 @@ export class UserModel {
     `;
     await pool.query(query, [accountStatus, userId]);
   }
+
+  static async updateUserRole(userId: string, role: string): Promise<void> {
+    const query = `
+      UPDATE users
+      SET role = $1, updated_at = NOW()
+      WHERE id = $2
+    `;
+    await pool.query(query, [role, userId]);
+  }
 }

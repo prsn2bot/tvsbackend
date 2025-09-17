@@ -15,7 +15,7 @@ export class AuthService {
     if (!email || !password) {
       throw new Error("Email and password are required");
     }
-    if (!["officer", "cvo", "legal_board", "admin"].includes(role)) {
+    if (!["officer", "cvo", "legal_board", "admin", "owner"].includes(role)) {
       throw new Error("Invalid role");
     }
     // Check if user already exists

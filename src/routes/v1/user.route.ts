@@ -1,7 +1,6 @@
 import express from "express";
 import { authenticate } from "../../middleware/auth.middleware";
 import rateLimitMiddleware from "../../middleware/rateLimitMiddleware";
-import subscriptionFeatureMiddleware from "../../middleware/subscriptionFeature.middleware";
 import { UserController } from "../../controllers/v1/user.controller";
 
 const router = express.Router();
@@ -11,7 +10,6 @@ router.get(
   "/me",
   authenticate,
   rateLimitMiddleware(),
-  subscriptionFeatureMiddleware,
   UserController.getUserProfile
 );
 
@@ -20,7 +18,6 @@ router.put(
   "/me",
   authenticate,
   rateLimitMiddleware(),
-  subscriptionFeatureMiddleware,
   UserController.updateUserProfile
 );
 

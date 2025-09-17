@@ -16,17 +16,19 @@ import planRoutes from "./routes/v1/plan.route";
 import subscriptionRoutes from "./routes/v1/subscription.route";
 import adminRoutes from "./routes/v1/admin.route";
 import mailRoutes from "./routes/v1/mail.route";
+import razorPaymentRoutes from "./routes/v1/razorPayment.route";
+import razorWebhookRoutes from "./routes/v1/razorWebhook.route";
 
 dotenv.config();
 const app: Express = express();
 const port = env.PORT;
 
 // Razorpay webhook raw body parser - ONLY apply to the webhook route
-// app.use(
-//   "/api/razorpay-webhook",
-//   express.raw({ type: "application/json" }),
-//   razorWebhookRoutes
-// );
+app.use(
+  "/api/v1/razorpay-webhook",
+  express.raw({ type: "application/json" }),
+  razorWebhookRoutes
+);
 
 // Middleware
 app.use(cors()); // Enable CORS for all routes
@@ -45,6 +47,7 @@ app.use("/api/v1/plans", planRoutes);
 app.use("/api/v1/subscriptions", subscriptionRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/mail", mailRoutes);
+app.use("/api/v1/razorpay", razorPaymentRoutes);
 
 // Rate limiting for API endpoints
 // app.use("/api", rateLimitMiddleware(1000, 15)); // Apply to all /api routes

@@ -12,21 +12,21 @@ router.post("/send-otp", MailController.sendOtp);
 router.post(
   "/send-update",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   MailController.sendUpdate
 );
 
 router.post(
   "/send-notification",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   MailController.sendNotification
 );
 
 router.post(
   "/send-welcome",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   MailController.sendWelcome
 );
 
@@ -37,14 +37,14 @@ router.post("/verify-otp", MailController.verifyOtp);
 router.post(
   "/send-invoice",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   MailController.sendInvoice
 );
 
 router.post(
   "/send-custom",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   MailController.sendCustom
 );
 

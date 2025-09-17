@@ -1,5 +1,5 @@
 // ENUMs matching the PostgreSQL types
-export type UserRole = "officer" | "cvo" | "legal_board" | "admin";
+export type UserRole = "officer" | "cvo" | "legal_board" | "admin" | "owner";
 export type AccountStatus =
   | "pending_verification"
   | "active"

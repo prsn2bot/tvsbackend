@@ -45,4 +45,8 @@ export class UserService {
   ): Promise<void> {
     await UserModel.updateUserStatus(userId, accountStatus);
   }
+
+  static async updateUserRole(userId: string, role: string): Promise<void> {
+    await UserModel.updateUserRole(userId, role);
+  }
 }

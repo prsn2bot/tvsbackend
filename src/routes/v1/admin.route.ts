@@ -13,7 +13,7 @@ const router = express.Router();
 router.get(
   "/users",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -38,7 +38,7 @@ router.get(
 router.put(
   "/users/:userId/status",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -52,11 +52,29 @@ router.put(
   }
 );
 
+// PUT /users/:userId/role - Update user role (owner only)
+router.put(
+  "/users/:userId/role",
+  authenticate,
+  hasRole(["owner"]),
+  rateLimitMiddleware(),
+  async (req, res, next) => {
+    try {
+      const { userId } = req.params;
+      const { role } = req.body;
+      await UserService.updateUserRole(userId, role);
+      res.json({ message: "User role updated successfully" });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // GET /cases - List all cases
 router.get(
   "/cases",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -81,7 +99,7 @@ router.get(
 router.get(
   "/subscriptions",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -116,7 +134,7 @@ router.get(
 router.post(
   "/subscriptions",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -135,7 +153,7 @@ router.post(
 router.put(
   "/subscriptions/:id",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -159,7 +177,7 @@ router.put(
 router.delete(
   "/subscriptions/:id",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -179,7 +197,7 @@ router.delete(
 router.get(
   "/plans",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -200,7 +218,7 @@ router.get(
 router.put(
   "/plans/:id",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -221,7 +239,7 @@ router.put(
 router.delete(
   "/plans/:id",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -241,7 +259,7 @@ router.delete(
 router.get(
   "/audit-logs",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {

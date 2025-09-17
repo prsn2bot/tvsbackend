@@ -5,7 +5,7 @@ export const registerSchema = z.object({
     email: z.string().email("Invalid email format"),
     password: z.string().min(8, "Password must be at least 8 characters long"),
     role: z
-      .enum(["officer", "cvo", "legal_board", "admin"])
+      .enum(["officer", "cvo", "legal_board", "admin", "owner"])
       .optional()
       .default("officer"),
   }),

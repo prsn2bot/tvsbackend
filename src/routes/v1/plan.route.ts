@@ -33,7 +33,7 @@ router.get("/:id", rateLimitMiddleware(), async (req, res, next) => {
 router.post(
   "/",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -50,7 +50,7 @@ router.post(
 router.put(
   "/:id",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
@@ -71,7 +71,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-  hasRole(["admin"]),
+  hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
