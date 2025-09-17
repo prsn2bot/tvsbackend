@@ -6,6 +6,9 @@ class UserService {
     static async getUserProfile(userId) {
         return await user_model_1.UserModel.findUserWithProfile(userId);
     }
+    static async getUserByEmail(email) {
+        return await user_model_1.UserModel.findUserByEmail(email);
+    }
     static async updateUserProfile(userId, profileData) {
         // Note: For simplicity, assuming profileData only contains profile fields, not user fields
         await user_model_1.UserModel.updateProfile(userId, profileData);
@@ -28,6 +31,9 @@ class UserService {
     }
     static async updateUserStatus(userId, accountStatus) {
         await user_model_1.UserModel.updateUserStatus(userId, accountStatus);
+    }
+    static async updateUserRole(userId, role) {
+        await user_model_1.UserModel.updateUserRole(userId, role);
     }
 }
 exports.UserService = UserService;

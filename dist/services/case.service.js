@@ -2,11 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CaseService = void 0;
 const case_model_1 = require("../models/case.model");
+const queue_1 = require("../jobs/queue");
 class CaseService {
     static async createCase(userId, caseData) {
         const caseRecord = await case_model_1.CaseModel.create({
             ...caseData,
-            officer_user_id: userId,
+            officer_user_id: parseInt(userId, 10),
         });
         return caseRecord;
     }
@@ -16,7 +17,7 @@ class CaseService {
     }
     static async getCaseById(caseId, userId) {
         const caseData = await case_model_1.CaseModel.findById(caseId);
-        if (!caseData || caseData.officer_user_id !== userId) {
+        if (!caseData || caseData.officer_user_id !== parseInt(userId, 10)) {
             throw new Error("Case not found or access denied");
         }
         return caseData;
@@ -28,7 +29,8 @@ class CaseService {
             ...documentData,
             case_id: caseId,
         });
-        // TODO: Enqueue AI job
+        // Enqueue AI processing job
+        await (0, queue_1.addAiProcessingJob)({ documentId: document.id });
         return document;
     }
     static async submitReview(caseId, reviewerId, reviewData) {

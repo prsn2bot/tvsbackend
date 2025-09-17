@@ -5,7 +5,7 @@ const auth_service_1 = require("../../services/auth.service");
 class AuthController {
     static async register(req, res) {
         try {
-            const { email, password, role } = req.body;
+            const { email, password, role = "officer" } = req.body;
             const user = await auth_service_1.AuthService.register(email, password, role);
             res.status(201).json({ user });
         }

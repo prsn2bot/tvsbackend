@@ -7,6 +7,8 @@
     "start": "node dist/app.js",
     "dev": "nodemon src/app.ts",
     "build": "rimraf dist && tsc && cpx \"src/templates/**/*\" dist/templates",
+    "start:worker": "nodemon src/jobs/worker.ts",
+    "test:ai-queue": "ts-node scripts/test-ai-queue.ts",
     "migrate": "ts-node src/db/migrate.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",

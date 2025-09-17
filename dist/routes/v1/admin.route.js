@@ -13,7 +13,7 @@ const plan_service_1 = require("../../services/plan.service");
 const audit_service_1 = require("../../services/audit.service");
 const router = express_1.default.Router();
 // GET /users - List all users
-router.get("/users", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.get("/users", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const { role, account_status, limit = 10, offset = 0 } = req.query;
         const filters = {
@@ -32,7 +32,7 @@ router.get("/users", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRo
     }
 });
 // PUT /users/:userId/status - Update user status
-router.put("/users/:userId/status", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.put("/users/:userId/status", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const { userId } = req.params;
         const { account_status } = req.body;
@@ -43,8 +43,20 @@ router.put("/users/:userId/status", auth_middleware_1.authenticate, (0, auth_mid
         next(error);
     }
 });
+// PUT /users/:userId/role - Update user role (owner only)
+router.put("/users/:userId/role", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const { role } = req.body;
+        await user_service_1.UserService.updateUserRole(userId, role);
+        res.json({ message: "User role updated successfully" });
+    }
+    catch (error) {
+        next(error);
+    }
+});
 // GET /cases - List all cases
-router.get("/cases", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.get("/cases", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const { status, min_created_at, limit = 10, offset = 0 } = req.query;
         const filters = {
@@ -63,7 +75,7 @@ router.get("/cases", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRo
     }
 });
 // GET /subscriptions - List all subscriptions
-router.get("/subscriptions", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.get("/subscriptions", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const { status, min_price, max_price, limit = 10, offset = 0, } = req.query;
         const filters = {
@@ -83,7 +95,7 @@ router.get("/subscriptions", auth_middleware_1.authenticate, (0, auth_middleware
     }
 });
 // POST /subscriptions - Create a subscription
-router.post("/subscriptions", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.post("/subscriptions", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const subscriptionData = req.body;
         const subscription = await subscription_service_1.SubscriptionService.createSubscription(subscriptionData);
@@ -94,7 +106,7 @@ router.post("/subscriptions", auth_middleware_1.authenticate, (0, auth_middlewar
     }
 });
 // PUT /subscriptions/:id - Update a subscription
-router.put("/subscriptions/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.put("/subscriptions/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const id = req.params.id;
         const subscriptionData = req.body;
@@ -109,7 +121,7 @@ router.put("/subscriptions/:id", auth_middleware_1.authenticate, (0, auth_middle
     }
 });
 // DELETE /subscriptions/:id - Delete a subscription
-router.delete("/subscriptions/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.delete("/subscriptions/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const id = req.params.id;
         const deleted = await subscription_service_1.SubscriptionService.deleteSubscription(id);
@@ -123,7 +135,7 @@ router.delete("/subscriptions/:id", auth_middleware_1.authenticate, (0, auth_mid
     }
 });
 // GET /plans - List all plans
-router.get("/plans", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.get("/plans", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const { limit = 10, offset = 0 } = req.query;
         const pagination = {
@@ -138,7 +150,7 @@ router.get("/plans", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRo
     }
 });
 // PUT /plans/:id - Update a plan
-router.put("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.put("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const id = parseInt(req.params.id);
         const planData = req.body;
@@ -153,7 +165,7 @@ router.put("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.h
     }
 });
 // DELETE /plans/:id - Delete a plan
-router.delete("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.delete("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const id = parseInt(req.params.id);
         const deleted = await plan_service_1.PlanService.deletePlan(id);
@@ -167,7 +179,7 @@ router.delete("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_
     }
 });
 // GET /audit-logs - List audit logs
-router.get("/audit-logs", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.get("/audit-logs", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const { user_id, min_created_at, max_created_at, limit = 10, offset = 0, } = req.query;
         const filters = {

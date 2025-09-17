@@ -1,4 +1,5 @@
 import { CaseModel } from "../models/case.model";
+import { addAiProcessingJob } from "../jobs/queue";
 
 export class CaseService {
   static async createCase(
@@ -7,7 +8,7 @@ export class CaseService {
   ) {
     const caseRecord = await CaseModel.create({
       ...caseData,
-      officer_user_id: userId,
+      officer_user_id: parseInt(userId, 10),
     });
     return caseRecord;
   }
@@ -23,7 +24,7 @@ export class CaseService {
 
   static async getCaseById(caseId: string, userId: string) {
     const caseData = await CaseModel.findById(caseId);
-    if (!caseData || caseData.officer_user_id !== userId) {
+    if (!caseData || caseData.officer_user_id !== parseInt(userId, 10)) {
       throw new Error("Case not found or access denied");
     }
     return caseData;
@@ -44,7 +45,10 @@ export class CaseService {
       ...documentData,
       case_id: caseId,
     });
-    // TODO: Enqueue AI job
+
+    // Enqueue AI processing job
+    await addAiProcessingJob({ documentId: document.id });
+
     return document;
   }
 

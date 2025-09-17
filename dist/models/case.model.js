@@ -162,6 +162,108 @@ class CaseModel {
         }));
         return { data, total };
     }
+    /**
+     * Find a document by its ID
+     * @param documentId - The document ID to find
+     * @returns Promise<Document | null> - The document or null if not found
+     */
+    static async findDocumentById(documentId) {
+        const query = `SELECT * FROM documents WHERE id = $1`;
+        const result = await database_1.pool.query(query, [documentId]);
+        if (result.rows.length === 0)
+            return null;
+        const row = result.rows[0];
+        return {
+            id: row.id,
+            case_id: row.case_id,
+            original_filename: row.original_filename,
+            cloudinary_public_id: row.cloudinary_public_id,
+            secure_url: row.secure_url,
+            file_type: row.file_type,
+            file_size_bytes: row.file_size_bytes,
+            ocr_text: row.ocr_text,
+            vector_embedding: row.vector_embedding,
+            uploaded_at: row.uploaded_at,
+        };
+    }
+    /**
+     * Update a document with new data
+     * @param documentId - The document ID to update
+     * @param updates - The fields to update
+     * @returns Promise<Document | null> - The updated document or null if not found
+     */
+    static async updateDocument(documentId, updates) {
+        const fields = [];
+        const values = [];
+        let paramIndex = 1;
+        if (updates.ocr_text !== undefined) {
+            fields.push(`ocr_text = $${paramIndex++}`);
+            values.push(updates.ocr_text);
+        }
+        if (updates.ocr_status !== undefined) {
+            fields.push(`ocr_status = $${paramIndex++}`);
+            values.push(updates.ocr_status);
+        }
+        if (updates.vector_embedding !== undefined) {
+            fields.push(`vector_embedding = $${paramIndex++}`);
+            values.push(JSON.stringify(updates.vector_embedding));
+        }
+        if (fields.length === 0) {
+            throw new Error("No fields to update");
+        }
+        fields.push(`uploaded_at = NOW()`);
+        values.push(documentId);
+        const query = `
+      UPDATE documents
+      SET ${fields.join(", ")}
+      WHERE id = $${paramIndex}
+      RETURNING *;
+    `;
+        const result = await database_1.pool.query(query, values);
+        if (result.rows.length === 0)
+            return null;
+        const row = result.rows[0];
+        return {
+            id: row.id,
+            case_id: row.case_id,
+            original_filename: row.original_filename,
+            cloudinary_public_id: row.cloudinary_public_id,
+            secure_url: row.secure_url,
+            file_type: row.file_type,
+            file_size_bytes: row.file_size_bytes,
+            ocr_text: row.ocr_text,
+            vector_embedding: row.vector_embedding,
+            uploaded_at: row.uploaded_at,
+        };
+    }
+    /**
+     * Update a case status
+     * @param caseId - The case ID to update
+     * @param status - The new status
+     * @returns Promise<Case | null> - The updated case or null if not found
+     */
+    static async updateCaseStatus(caseId, status) {
+        const query = `
+      UPDATE cases
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING *;
+    `;
+        const result = await database_1.pool.query(query, [status, caseId]);
+        if (result.rows.length === 0)
+            return null;
+        const row = result.rows[0];
+        return {
+            id: row.id,
+            officer_user_id: row.officer_user_id,
+            case_title: row.case_title,
+            status: row.status,
+            assigned_cvo_id: row.assigned_cvo_id,
+            assigned_legal_board_id: row.assigned_legal_board_id,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        };
+    }
 }
 exports.CaseModel = CaseModel;
 //# sourceMappingURL=case.model.js.map

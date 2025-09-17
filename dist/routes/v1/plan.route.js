@@ -33,7 +33,7 @@ router.get("/:id", (0, rateLimitMiddleware_1.default)(), async (req, res, next) 
     }
 });
 // POST / - Create a new plan
-router.post("/", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.post("/", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const planData = req.body;
         const plan = await plan_service_1.PlanService.createPlan(planData);
@@ -44,7 +44,7 @@ router.post("/", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(
     }
 });
 // PUT /:id - Update a plan
-router.put("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.put("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const id = parseInt(req.params.id);
         const planData = req.body;
@@ -59,7 +59,7 @@ router.put("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole
     }
 });
 // DELETE /:id - Delete a plan
-router.delete("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.delete("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const id = parseInt(req.params.id);
         const deleted = await plan_service_1.PlanService.deletePlan(id);

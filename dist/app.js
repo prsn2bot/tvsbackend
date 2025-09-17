@@ -9,20 +9,35 @@ const cors_1 = __importDefault(require("cors"));
 const env_1 = require("./config/env");
 const basic_auth_1 = __importDefault(require("basic-auth"));
 const env_2 = require("./config/env");
+const auth_route_1 = __importDefault(require("./routes/v1/auth.route"));
+const user_route_1 = __importDefault(require("./routes/v1/user.route"));
+const case_route_1 = __importDefault(require("./routes/v1/case.route"));
+const plan_route_1 = __importDefault(require("./routes/v1/plan.route"));
+const subscription_route_1 = __importDefault(require("./routes/v1/subscription.route"));
+const admin_route_1 = __importDefault(require("./routes/v1/admin.route"));
+const mail_route_1 = __importDefault(require("./routes/v1/mail.route"));
+const razorPayment_route_1 = __importDefault(require("./routes/v1/razorPayment.route"));
+const razorWebhook_route_1 = __importDefault(require("./routes/v1/razorWebhook.route"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = env_1.env.PORT;
 // Razorpay webhook raw body parser - ONLY apply to the webhook route
-// app.use(
-//   "/api/razorpay-webhook",
-//   express.raw({ type: "application/json" }),
-//   razorWebhookRoutes
-// );
+app.use("/api/v1/razorpay-webhook", express_1.default.raw({ type: "application/json" }), razorWebhook_route_1.default);
 // Middleware
 app.use((0, cors_1.default)()); // Enable CORS for all routes
 app.use(express_1.default.json({ limit: "1mb" })); // Enable JSON body parser
 // Serve static files from the 'public' directory
 app.use(express_1.default.static("src/public"));
+// Import routes
+// Register routes
+app.use("/api/v1/auth", auth_route_1.default);
+app.use("/api/v1/users", user_route_1.default);
+app.use("/api/v1/cases", case_route_1.default);
+app.use("/api/v1/plans", plan_route_1.default);
+app.use("/api/v1/subscriptions", subscription_route_1.default);
+app.use("/api/v1/admin", admin_route_1.default);
+app.use("/api/v1/mail", mail_route_1.default);
+app.use("/api/v1/razorpay", razorPayment_route_1.default);
 // Rate limiting for API endpoints
 // app.use("/api", rateLimitMiddleware(1000, 15)); // Apply to all /api routes
 // Serve Swagger UI at /api-docs with custom CSS

@@ -20,7 +20,7 @@ router.get("/", auth_middleware_1.authenticate, (0, rateLimitMiddleware_1.defaul
     }
 });
 // POST / - Create a subscription
-router.post("/", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.post("/", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const subscriptionData = req.body;
         const subscription = await subscription_service_1.SubscriptionService.createSubscription(subscriptionData);
@@ -31,7 +31,7 @@ router.post("/", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(
     }
 });
 // PUT /:id - Update a subscription
-router.put("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.put("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const id = req.params.id;
         const subscriptionData = req.body;
@@ -46,7 +46,7 @@ router.put("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole
     }
 });
 // DELETE /:id - Cancel a subscription
-router.delete("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
+router.delete("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const id = req.params.id;
         const deleted = await subscription_service_1.SubscriptionService.deleteSubscription(id);
