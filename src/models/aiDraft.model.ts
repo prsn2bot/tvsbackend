@@ -2,7 +2,7 @@ import { pool } from "../config/database";
 import { AiDraft } from "../types/case.types";
 
 interface CreateAiDraftData {
-  case_id: string;
+  case_id: number;
   version: number;
   content: string;
   defence_score?: number;

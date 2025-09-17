@@ -18,7 +18,7 @@ export const aiProcessingQueue = createQueue(AI_PROCESSING_QUEUE_NAME, {
  * Defines the data structure for a job
  */
 export interface AiProcessingJobData {
-  documentId: string;
+  documentId: number;
 }
 
 /**

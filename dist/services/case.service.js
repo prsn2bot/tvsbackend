@@ -7,7 +7,7 @@ class CaseService {
     static async createCase(userId, caseData) {
         const caseRecord = await case_model_1.CaseModel.create({
             ...caseData,
-            officer_user_id: parseInt(userId, 10),
+            officer_user_id: userId,
         });
         return caseRecord;
     }
@@ -17,7 +17,7 @@ class CaseService {
     }
     static async getCaseById(caseId, userId) {
         const caseData = await case_model_1.CaseModel.findById(caseId);
-        if (!caseData || caseData.officer_user_id !== parseInt(userId, 10)) {
+        if (!caseData || caseData.officer_user_id !== userId) {
             throw new Error("Case not found or access denied");
         }
         return caseData;

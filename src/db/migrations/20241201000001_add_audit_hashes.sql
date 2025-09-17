@@ -1,0 +1,3 @@
+ALTER TABLE audits
+ADD COLUMN previous_hash VARCHAR(255),
+ADD COLUMN current_hash VARCHAR(255) NOT NULL;

@@ -25,7 +25,7 @@ async function testAiQueue() {
     // Step 2: Add a test document
     console.log("2. Adding test document...");
     const testDocument = await CaseModel.createDocument({
-      case_id: testCase.id.toString(),
+      case_id: testCase.id,
       cloudinary_public_id: "dummy_1.pdf",
       secure_url:
         "https://res.cloudinary.com/looye/raw/upload/v1527240070/dummy_1.pdf",
@@ -34,7 +34,7 @@ async function testAiQueue() {
 
     // Step 3: Enqueue AI processing job
     console.log("3. Enqueuing AI processing job...");
-    await addAiProcessingJob({ documentId: testDocument.id.toString() });
+    await addAiProcessingJob({ documentId: testDocument.id });
     console.log("✅ AI processing job enqueued\n");
 
     // Step 4: Wait for processing (in a real scenario, the worker would process this)
@@ -49,9 +49,7 @@ async function testAiQueue() {
 
     // Step 5: Check current state
     console.log("5. Checking current document state...");
-    const documentAfter = await CaseModel.findDocumentById(
-      testDocument.id.toString()
-    );
+    const documentAfter = await CaseModel.findDocumentById(testDocument.id);
     console.log(
       `Document OCR status: ${documentAfter?.ocr_status || "not set"}`
     );
@@ -76,7 +74,7 @@ async function testAiQueue() {
 
     // Step 7: Check case status
     console.log("\n7. Checking case status...");
-    const updatedCase = await CaseModel.findById(testCase.id.toString());
+    const updatedCase = await CaseModel.findById(testCase.id);
     console.log(`Case status: ${updatedCase?.status}`);
 
     console.log(

@@ -41,7 +41,12 @@ class CaseController {
         try {
             const { caseId } = req.params;
             const userId = req.user.userId;
-            const caseData = await case_service_1.CaseService.getCaseById(caseId, userId);
+            // Convert caseId to number and validate
+            const numericCaseId = parseInt(caseId, 10);
+            if (isNaN(numericCaseId)) {
+                return res.status(400).json({ error: "Invalid case ID format" });
+            }
+            const caseData = await case_service_1.CaseService.getCaseById(numericCaseId, userId);
             res.json(caseData);
         }
         catch (error) {
@@ -53,7 +58,12 @@ class CaseController {
             const { caseId } = req.params;
             const { cloudinary_public_id, secure_url, ocr_text } = req.body;
             const userId = req.user.userId;
-            const document = await case_service_1.CaseService.addDocument(caseId, userId, {
+            // Convert caseId to number and validate
+            const numericCaseId = parseInt(caseId, 10);
+            if (isNaN(numericCaseId)) {
+                return res.status(400).json({ error: "Invalid case ID format" });
+            }
+            const document = await case_service_1.CaseService.addDocument(numericCaseId, userId, {
                 cloudinary_public_id,
                 secure_url,
                 ocr_text,
@@ -69,7 +79,12 @@ class CaseController {
             const { caseId } = req.params;
             const { review_text, decision } = req.body;
             const reviewerId = req.user.userId;
-            const review = await case_service_1.CaseService.submitReview(caseId, reviewerId, {
+            // Convert caseId to number and validate
+            const numericCaseId = parseInt(caseId, 10);
+            if (isNaN(numericCaseId)) {
+                return res.status(400).json({ error: "Invalid case ID format" });
+            }
+            const review = await case_service_1.CaseService.submitReview(numericCaseId, reviewerId, {
                 review_text,
                 decision,
             });

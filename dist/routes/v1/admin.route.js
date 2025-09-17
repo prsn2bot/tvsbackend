@@ -182,11 +182,19 @@ router.delete("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_
 router.get("/audit-logs", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
         const { user_id, min_created_at, max_created_at, limit = 10, offset = 0, } = req.query;
-        const filters = {
-            user_id: user_id,
-            min_created_at: min_created_at,
-            max_created_at: max_created_at,
-        };
+        const filters = {};
+        if (user_id) {
+            const numericUserId = parseInt(user_id, 10);
+            if (!isNaN(numericUserId)) {
+                filters.user_id = numericUserId;
+            }
+        }
+        if (min_created_at) {
+            filters.min_created_at = min_created_at;
+        }
+        if (max_created_at) {
+            filters.max_created_at = max_created_at;
+        }
         const pagination = {
             limit: parseInt(limit),
             offset: parseInt(offset),

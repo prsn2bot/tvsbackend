@@ -8,7 +8,7 @@ const AppError_1 = require("../../utils/AppError");
 const cloudinary_service_1 = require("../../services/cloudinary.service");
 const ai_service_1 = require("../../services/ai.service");
 const logger_1 = __importDefault(require("../../utils/logger"));
-const case_model_1 = require("@/models/case.model");
+const case_model_1 = require("../../models/case.model");
 /**
  * The main processor function for handling AI draft generation.
  * This function is executed by a background worker for each job.

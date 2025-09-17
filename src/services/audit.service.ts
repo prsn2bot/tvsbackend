@@ -4,7 +4,7 @@ import { AuditLog } from "../types/audit.types";
 export class AuditService {
   static async getAllAuditLogs(
     filters: {
-      user_id?: string;
+      user_id?: number;
       min_created_at?: string;
       max_created_at?: string;
     },
@@ -14,7 +14,7 @@ export class AuditService {
   }
 
   static async createAuditLog(auditData: {
-    user_id?: string;
+    user_id?: number;
     action: string;
     details?: Record<string, any>;
     previous_hash?: string;

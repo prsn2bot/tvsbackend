@@ -6,7 +6,7 @@ import {
 
 export class SubscriptionService {
   static async getSubscriptionByUserId(
-    userId: string
+    userId: number
   ): Promise<SubscriptionWithPlan | null> {
     return await SubscriptionModel.findByUserId(userId);
   }

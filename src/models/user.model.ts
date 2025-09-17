@@ -3,7 +3,7 @@ import { User, UserProfile, UserWithProfile } from "../types/user.types";
 
 export class UserModel {
   static async findUserWithProfile(
-    userId: string
+    userId: number
   ): Promise<UserWithProfile | null> {
     const query = `
       SELECT
@@ -95,7 +95,7 @@ export class UserModel {
   }
 
   static async updateProfile(
-    userId: string,
+    userId: number,
     profileData: Partial<UserProfile>
   ): Promise<void> {
     const fields = Object.keys(profileData).filter(
@@ -106,7 +106,7 @@ export class UserModel {
     const setClause = fields
       .map((field, index) => `${field} = $${index + 2}`)
       .join(", ");
-    const values = fields.map(
+    const values: any[] = fields.map(
       (field) => profileData[field as keyof UserProfile]
     );
     values.unshift(userId);

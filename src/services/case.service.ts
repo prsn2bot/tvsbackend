@@ -3,18 +3,18 @@ import { addAiProcessingJob } from "../jobs/queue";
 
 export class CaseService {
   static async createCase(
-    userId: string,
+    userId: number,
     caseData: { title: string; description: string; status: string }
   ) {
     const caseRecord = await CaseModel.create({
       ...caseData,
-      officer_user_id: parseInt(userId, 10),
+      officer_user_id: userId,
     });
     return caseRecord;
   }
 
   static async getCases(
-    userId: string,
+    userId: number,
     filters: { status?: string; min_created_at?: string },
     pagination: { page: number; limit: number }
   ) {
@@ -22,17 +22,17 @@ export class CaseService {
     return cases;
   }
 
-  static async getCaseById(caseId: string, userId: string) {
+  static async getCaseById(caseId: number, userId: number) {
     const caseData = await CaseModel.findById(caseId);
-    if (!caseData || caseData.officer_user_id !== parseInt(userId, 10)) {
+    if (!caseData || caseData.officer_user_id !== userId) {
       throw new Error("Case not found or access denied");
     }
     return caseData;
   }
 
   static async addDocument(
-    caseId: string,
-    userId: string,
+    caseId: number,
+    userId: number,
     documentData: {
       cloudinary_public_id: string;
       secure_url: string;
@@ -53,8 +53,8 @@ export class CaseService {
   }
 
   static async submitReview(
-    caseId: string,
-    reviewerId: string,
+    caseId: number,
+    reviewerId: number,
     reviewData: { review_text: string; decision: string }
   ) {
     // Verify case exists

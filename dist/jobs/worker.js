@@ -4,14 +4,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const bullmq_1 = require("bullmq");
-const redis_config_1 = require("../config/redis.config");
+const env_1 = require("../config/env");
 const aiDraftProcessor_1 = __importDefault(require("./processors/aiDraftProcessor"));
 const logger_1 = __importDefault(require("../utils/logger"));
 // The name for our primary AI processing queue
 const AI_PROCESSING_QUEUE_NAME = "ai-processing";
-// Create a new worker instance that connects to your Redis server
+// Create a new worker instance using centralized BullMQ config
 const aiProcessingWorker = new bullmq_1.Worker(AI_PROCESSING_QUEUE_NAME, aiDraftProcessor_1.default, {
-    connection: redis_config_1.redisClient,
+    connection: { url: env_1.env.REDIS_URL },
     concurrency: 2,
     limiter: {
         max: 10,

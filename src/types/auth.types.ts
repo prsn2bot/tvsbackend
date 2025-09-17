@@ -2,7 +2,7 @@ import { UserRole } from "./user.types";
 
 // The data encoded within the JWT access token
 export interface JwtPayload {
-  userId: string;
+  userId: number;
   role: UserRole;
   email: string;
   is_verified: boolean;

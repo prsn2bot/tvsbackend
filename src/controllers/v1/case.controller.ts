@@ -40,7 +40,14 @@ export class CaseController {
     try {
       const { caseId } = req.params;
       const userId = req.user!.userId;
-      const caseData = await CaseService.getCaseById(caseId, userId);
+
+      // Convert caseId to number and validate
+      const numericCaseId = parseInt(caseId, 10);
+      if (isNaN(numericCaseId)) {
+        return res.status(400).json({ error: "Invalid case ID format" });
+      }
+
+      const caseData = await CaseService.getCaseById(numericCaseId, userId);
       res.json(caseData);
     } catch (error) {
       res.status(404).json({ error: (error as Error).message });
@@ -52,7 +59,14 @@ export class CaseController {
       const { caseId } = req.params;
       const { cloudinary_public_id, secure_url, ocr_text } = req.body;
       const userId = req.user!.userId;
-      const document = await CaseService.addDocument(caseId, userId, {
+
+      // Convert caseId to number and validate
+      const numericCaseId = parseInt(caseId, 10);
+      if (isNaN(numericCaseId)) {
+        return res.status(400).json({ error: "Invalid case ID format" });
+      }
+
+      const document = await CaseService.addDocument(numericCaseId, userId, {
         cloudinary_public_id,
         secure_url,
         ocr_text,
@@ -68,7 +82,14 @@ export class CaseController {
       const { caseId } = req.params;
       const { review_text, decision } = req.body;
       const reviewerId = req.user!.userId;
-      const review = await CaseService.submitReview(caseId, reviewerId, {
+
+      // Convert caseId to number and validate
+      const numericCaseId = parseInt(caseId, 10);
+      if (isNaN(numericCaseId)) {
+        return res.status(400).json({ error: "Invalid case ID format" });
+      }
+
+      const review = await CaseService.submitReview(numericCaseId, reviewerId, {
         review_text,
         decision,
       });

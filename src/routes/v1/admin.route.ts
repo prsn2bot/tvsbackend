@@ -270,11 +270,24 @@ router.get(
         limit = 10,
         offset = 0,
       } = req.query;
-      const filters = {
-        user_id: user_id as string | undefined,
-        min_created_at: min_created_at as string | undefined,
-        max_created_at: max_created_at as string | undefined,
-      };
+      const filters: {
+        user_id?: number;
+        min_created_at?: string;
+        max_created_at?: string;
+      } = {};
+
+      if (user_id) {
+        const numericUserId = parseInt(user_id as string, 10);
+        if (!isNaN(numericUserId)) {
+          filters.user_id = numericUserId;
+        }
+      }
+      if (min_created_at) {
+        filters.min_created_at = min_created_at as string;
+      }
+      if (max_created_at) {
+        filters.max_created_at = max_created_at as string;
+      }
       const pagination = {
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),

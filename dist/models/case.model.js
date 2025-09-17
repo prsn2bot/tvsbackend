@@ -206,7 +206,7 @@ class CaseModel {
         }
         if (updates.vector_embedding !== undefined) {
             fields.push(`vector_embedding = $${paramIndex++}`);
-            values.push(JSON.stringify(updates.vector_embedding));
+            values.push(updates.vector_embedding);
         }
         if (fields.length === 0) {
             throw new Error("No fields to update");

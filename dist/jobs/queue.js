@@ -1,13 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addAiProcessingJob = exports.aiProcessingQueue = void 0;
-const bullmq_1 = require("bullmq");
-const redis_config_1 = require("../config/redis.config");
+const bull_config_1 = require("../config/bull.config");
 // The name for our primary AI processing queue
 const AI_PROCESSING_QUEUE_NAME = "ai-processing";
-// Create a new queue instance that connects to your Redis server
-exports.aiProcessingQueue = new bullmq_1.Queue(AI_PROCESSING_QUEUE_NAME, {
-    connection: redis_config_1.redisClient,
+// Create a new queue instance using the centralized BullMQ config
+exports.aiProcessingQueue = (0, bull_config_1.createQueue)(AI_PROCESSING_QUEUE_NAME, {
     defaultJobOptions: {
         attempts: 3,
         backoff: {

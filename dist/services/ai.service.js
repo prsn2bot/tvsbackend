@@ -5,10 +5,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createVectorEmbedding = exports.generateDraftWithAI = void 0;
 const logger_1 = __importDefault(require("../utils/logger"));
+const ai_1 = require("../config/ai");
+/**
+ * Configuration for retry logic
+ */
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000; // 1 second
+/**
+ * Retry function with exponential backoff for rate limiting
+ */
+async function callApiWithRetry(fn, retries = MAX_RETRIES) {
+    try {
+        return await fn();
+    }
+    catch (error) {
+        if (retries > 0 && (error.code === 429 || error.status === 429)) {
+            const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, MAX_RETRIES - retries);
+            logger_1.default.warn(`Rate limit hit. Retrying in ${delay}ms... (Retries left: ${retries})`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return callApiWithRetry(fn, retries - 1);
+        }
+        else {
+            throw error;
+        }
+    }
+}
 /**
  * Generates a defence draft using AI based on the provided text.
- * This is a mock service. In a real application, you would use an AI API
- * like OpenAI's GPT, Google's Gemini, or another LLM provider.
+ * Uses Google Gemini AI with proper error handling and retry logic.
  *
  * @param text - The extracted OCR text from the document
  * @returns Promise<AiResult> - The generated draft with scores
@@ -16,39 +40,92 @@ const logger_1 = __importDefault(require("../utils/logger"));
 const generateDraftWithAI = async (text) => {
     logger_1.default.info(`Sending text to AI for draft generation...`);
     try {
-        // MOCK LOGIC: Simulate an API call to your AI model
-        // In production, you would:
-        // 1. Use the AI provider's SDK (e.g., OpenAI, Google AI)
-        // 2. Send the text with appropriate prompts for defence drafting
-        // 3. Parse the response to extract draft content and scores
-        await new Promise((resolve) => setTimeout(resolve, 5000)); // Simulate AI processing time
-        // Mock AI result - in reality this would come from your AI service
-        const mockResult = {
-            draftContent: `Based on the provided document text, here is the AI-generated defence draft:
+        const config = {
+            responseMimeType: "text/plain",
+            systemInstruction: [
+                {
+                    text: `You are a professional legal assistant specializing in government officer defence drafting. Your task is to analyze the provided document text and generate a comprehensive defence response.
 
-SUBJECT: Response to Allegations of Undue Favoritism in Procurement Process
+Writing Style Instructions:
+- Write like a confident, experienced legal professional speaking to another professional
+- Avoid robotic phrases like 'in today's fast-paced world', 'leveraging synergies', or 'furthermore'
+- Skip unnecessary dashes (—), quotation marks (""), and corporate buzzwords
+- No AI tone. No fluff. No filler
+- Use natural transitions like 'here's the thing', 'let's break it down', or 'what this really means is…'
+- Keep sentences varied in length and rhythm, like how real people speak or write
+- Prioritize clarity, professionalism, and legal accuracy
 
-Dear [Authority Name],
+Your task:
+1. Analyze the provided document text for key allegations and facts
+2. Generate a professional defence response that addresses all major points
+3. Include specific references to procedures, regulations, and evidence
+4. Provide a defence score (0-100) based on strength of the case
+5. Provide a confidence score (0-100) based on completeness of information
 
-I am writing in response to the allegations regarding undue favoritism in the procurement process. After careful review of the circumstances, I would like to provide the following clarifications:
+Return the response in this exact JSON format:
+{
+  "draftContent": "The full defence draft text here...",
+  "defenceScore": 85.5,
+  "confidenceScore": 92.1
+}
 
-1. **Procurement Procedures**: All procurement activities were conducted in strict accordance with established departmental guidelines and government regulations. The bidding process was open, transparent, and followed standard protocols.
-
-2. **Vendor Selection**: The selection of vendors was based solely on objective criteria including price competitiveness, quality of service, past performance, and compliance with technical specifications.
-
-3. **Documentation**: Complete records of all communications, evaluations, and decisions have been maintained and are available for audit purposes.
-
-4. **Ethical Standards**: Throughout the process, the highest standards of integrity and fairness were maintained. No preferential treatment was given to any vendor.
-
-I trust this addresses the concerns raised and demonstrates our commitment to transparent and ethical procurement practices.
-
-Sincerely,
-[Officer Name]`,
-            defenceScore: 75.5,
-            confidenceScore: 92.1,
+Do NOT include any additional text, explanations, or formatting outside this JSON structure.`,
+                },
+            ],
         };
-        logger_1.default.info(`AI draft generation completed`);
-        return mockResult;
+        const model = "gemini-2.0-flash";
+        const contents = [
+            {
+                role: "user",
+                parts: [
+                    {
+                        text: `Please analyze this document and generate a defence draft:\n\n${text}`,
+                    },
+                ],
+            },
+        ];
+        const response = await callApiWithRetry(() => (0, ai_1.getAiInstance)().models.generateContentStream({
+            model,
+            config,
+            contents,
+        }));
+        let finalText = "";
+        for await (const chunk of response) {
+            finalText += chunk.text;
+        }
+        // Clean up the response
+        const cleanedText = finalText.trim();
+        if (!cleanedText) {
+            throw new Error("Empty response from AI model.");
+        }
+        // Clean the response by removing markdown code blocks if present
+        let jsonText = cleanedText;
+        if (cleanedText.startsWith("```json")) {
+            jsonText = cleanedText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        }
+        else if (cleanedText.startsWith("```")) {
+            jsonText = cleanedText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+        }
+        // Parse the JSON response
+        try {
+            const result = JSON.parse(jsonText);
+            // Validate the response structure
+            if (!result.draftContent ||
+                typeof result.defenceScore !== "number" ||
+                typeof result.confidenceScore !== "number") {
+                throw new Error("Invalid response structure from AI model");
+            }
+            logger_1.default.info(`AI draft generation completed successfully`);
+            return {
+                draftContent: result.draftContent,
+                defenceScore: Math.max(0, Math.min(100, result.defenceScore)),
+                confidenceScore: Math.max(0, Math.min(100, result.confidenceScore)), // Clamp between 0-100
+            };
+        }
+        catch (parseError) {
+            logger_1.default.error(`Failed to parse AI response:`, parseError);
+            throw new Error("Failed to parse AI response");
+        }
     }
     catch (error) {
         logger_1.default.error(`Failed to generate AI draft:`, error);

@@ -3,7 +3,7 @@ import { UserWithProfile, User } from "../types/user.types";
 import { PaginatedResponse } from "../types/common.types";
 
 export class UserService {
-  static async getUserProfile(userId: string): Promise<UserWithProfile | null> {
+  static async getUserProfile(userId: number): Promise<UserWithProfile | null> {
     return await UserModel.findUserWithProfile(userId);
   }
 
@@ -12,7 +12,7 @@ export class UserService {
   }
 
   static async updateUserProfile(
-    userId: string,
+    userId: number,
     profileData: Partial<UserWithProfile>
   ): Promise<void> {
     // Note: For simplicity, assuming profileData only contains profile fields, not user fields

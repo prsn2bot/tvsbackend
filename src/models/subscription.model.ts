@@ -6,7 +6,7 @@ import {
 
 export class SubscriptionModel {
   static async findByUserId(
-    userId: string
+    userId: number
   ): Promise<SubscriptionWithPlan | null> {
     const query = `
       SELECT s.*, p.name as plan_name, p.price_monthly, p.features

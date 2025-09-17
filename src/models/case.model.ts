@@ -29,7 +29,7 @@ export class CaseModel {
   }
 
   static async findCasesByUser(
-    userId: string,
+    userId: number,
     filters: { status?: string; min_created_at?: string },
     pagination: { page: number; limit: number }
   ): Promise<{ data: Case[]; total: number }> {
@@ -74,7 +74,7 @@ export class CaseModel {
     return { data, total };
   }
 
-  static async findById(caseId: string): Promise<Case | null> {
+  static async findById(caseId: number): Promise<Case | null> {
     const query = `SELECT * FROM cases WHERE id = $1`;
     const result = await pool.query(query, [caseId]);
     if (result.rows.length === 0) return null;
@@ -92,7 +92,7 @@ export class CaseModel {
   }
 
   static async createDocument(documentData: {
-    case_id: string;
+    case_id: number;
     cloudinary_public_id: string;
     secure_url: string;
     ocr_text?: string;
@@ -125,8 +125,8 @@ export class CaseModel {
   }
 
   static async createReview(reviewData: {
-    case_id: string;
-    reviewer_id: string;
+    case_id: number;
+    reviewer_id: number;
     review_text: string;
     decision: string;
   }): Promise<Review> {
@@ -205,7 +205,7 @@ export class CaseModel {
    * @param documentId - The document ID to find
    * @returns Promise<Document | null> - The document or null if not found
    */
-  static async findDocumentById(documentId: string): Promise<Document | null> {
+  static async findDocumentById(documentId: number): Promise<Document | null> {
     const query = `SELECT * FROM documents WHERE id = $1`;
     const result = await pool.query(query, [documentId]);
     if (result.rows.length === 0) return null;
@@ -231,7 +231,7 @@ export class CaseModel {
    * @returns Promise<Document | null> - The updated document or null if not found
    */
   static async updateDocument(
-    documentId: string,
+    documentId: number,
     updates: Record<string, any>
   ): Promise<Document | null> {
     const fields = [];
@@ -290,7 +290,7 @@ export class CaseModel {
    * @returns Promise<Case | null> - The updated case or null if not found
    */
   static async updateCaseStatus(
-    caseId: string,
+    caseId: number,
     status: string
   ): Promise<Case | null> {
     const query = `
