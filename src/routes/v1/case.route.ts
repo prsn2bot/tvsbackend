@@ -10,7 +10,7 @@ const router = express.Router();
 router.post(
   "/",
   authenticate,
-  hasRole(["officer"]),
+  hasRole(["officer", "owner"]),
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
   CaseController.createCase
@@ -47,7 +47,7 @@ router.post(
 router.post(
   "/:caseId/review",
   authenticate,
-  hasRole(["cvo", "legal_board"]),
+  hasRole(["cvo", "legal_board", "owner"]),
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
   CaseController.submitReview

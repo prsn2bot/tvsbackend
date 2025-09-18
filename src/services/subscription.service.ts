@@ -23,10 +23,14 @@ export class SubscriptionService {
     plan_id: number;
     payment_provider_subscription_id?: string;
     status: string;
-    start_date: Date;
+    start_date?: Date;
     end_date?: Date;
   }): Promise<Subscription> {
-    return await SubscriptionModel.create(subscriptionData);
+    const data = {
+      ...subscriptionData,
+      start_date: subscriptionData.start_date || new Date(),
+    };
+    return await SubscriptionModel.create(data);
   }
 
   static async updateSubscription(
