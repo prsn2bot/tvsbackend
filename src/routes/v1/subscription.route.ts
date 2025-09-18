@@ -45,10 +45,19 @@ router.put(
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
-      const id = req.params.id;
+      const { id } = req.params;
       const subscriptionData = req.body;
+
+      // Convert id to number and validate
+      const numericId = parseInt(id, 10);
+      if (isNaN(numericId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid subscription ID format" });
+      }
+
       const updatedSubscription = await SubscriptionService.updateSubscription(
-        id,
+        numericId,
         subscriptionData
       );
       if (!updatedSubscription) {
@@ -69,8 +78,17 @@ router.delete(
   rateLimitMiddleware(),
   async (req, res, next) => {
     try {
-      const id = req.params.id;
-      const deleted = await SubscriptionService.deleteSubscription(id);
+      const { id } = req.params;
+
+      // Convert id to number and validate
+      const numericId = parseInt(id, 10);
+      if (isNaN(numericId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid subscription ID format" });
+      }
+
+      const deleted = await SubscriptionService.deleteSubscription(numericId);
       if (!deleted) {
         return res.status(404).json({ message: "Subscription not found" });
       }

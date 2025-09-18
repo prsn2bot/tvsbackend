@@ -1,232 +1,775 @@
-# Curl commands for Razorpay API routes
+# Complete API Documentation with cURL Commands
 
-## Create Razorpay Order
+## Base Configuration
 
-curl -X POST http://localhost:PORT/api/v1/razorpay/create-order \
+```bash
+BASE_URL="http://localhost:3000/api/v1"
+ACCESS_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+REFRESH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+---
+
+## 🔐 Authentication Routes
+
+### Register New User
+
+```bash
+curl -X POST "${BASE_URL}/auth/register" \
 -H "Content-Type: application/json" \
--H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
--d "{\"planId\": \"PLAN_ID\", \"userId\": \"USER_ID\"}"
+-d '{
+  "email": "officer@example.com",
+  "password": "SecurePass123!",
+  "role": "officer"
+}'
+```
 
-## Verify Razorpay Payment
+**Available Roles:** `officer`, `cvo`, `legal_board`, `admin`, `owner`
 
-curl -X POST http://localhost:PORT/api/v1/razorpay/verify-payment \
+### Login User
+
+```bash
+curl -X POST "${BASE_URL}/auth/login" \
 -H "Content-Type: application/json" \
--H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
--d "{\"razorpay_order_id\": \"ORDER_ID\", \"razorpay_payment_id\": \"PAYMENT_ID\", \"razorpay_signature\": \"SIGNATURE\"}"
+-d '{
+  "email": "officer@example.com",
+  "password": "SecurePass123!"
+}'
+```
 
-## Razorpay Webhook Endpoint
+**Response:**
 
-The webhook endpoint is configured at:
-POST http://localhost:PORT/api/v1/razorpay-webhook
-Content-Type: application/json
-X-Razorpay-Signature: SIGNATURE
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
 
-This endpoint is called by Razorpay to notify payment events.
+### Refresh Access Token
 
-Replace PORT, YOUR_ACCESS_TOKEN, PLAN_ID, USER_ID, ORDER_ID, PAYMENT_ID, and SIGNATURE with actual values.
-
-# cURL Commands for API Routes
-
-## Authentication Routes
-
-### Register
-
-curl -X POST http://localhost:3000/api/v1/auth/register \
+```bash
+curl -X POST "${BASE_URL}/auth/refresh-token" \
 -H "Content-Type: application/json" \
--d '{"email":"user@example.com","password":"password123","otherFields":"value"}'
+-d '{
+  "refreshToken": "'${REFRESH_TOKEN}'"
+}'
+```
 
-### Login
+---
 
-curl -X POST http://localhost:3000/api/v1/auth/login \
--H "Content-Type: application/json" \
--d '{"email":"user@example.com","password":"password123"}'
-
-### Refresh Token
-
-curl -X POST http://localhost:3000/api/v1/auth/refresh-token \
--H "Content-Type: application/json" \
--d '{"refreshToken":"your_refresh_token"}'
-
-## User Routes
+## 👤 User Profile Routes
 
 ### Get Current User Profile
 
-curl -X GET http://localhost:3000/api/v1/users/me \
--H "Authorization: Bearer your_access_token"
+```bash
+curl -X GET "${BASE_URL}/users/me" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
 
-### Update Current User Profile (Creates profile if it doesn't exist)
+### Update User Profile
 
-curl -X PUT http://localhost:3000/api/v1/users/me \
--H "Authorization: Bearer your_access_token" \
+```bash
+curl -X PUT "${BASE_URL}/users/me" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"first_name":"John","last_name":"Doe","employee_id":"EMP001","cadre_service":"Police","designation_rank":"Inspector","country":"India","state":"Maharashtra","district":"Mumbai","city":"Mumbai","preferred_language":"en"}'
+-d '{
+  "first_name": "John",
+  "last_name": "Doe",
+  "employee_id": "EMP001",
+  "cadre_service": "Police",
+  "designation_rank": "Inspector",
+  "profile_photo_url": "https://example.com/photo.jpg",
+  "head_office_address": "123 Main St, City",
+  "branch_office_address": "456 Branch St, City",
+  "country": "India",
+  "state": "Maharashtra",
+  "district": "Mumbai",
+  "city": "Mumbai",
+  "preferred_language": "en"
+}'
+```
 
-## Case Routes
+---
 
-### Create Case
+## 📋 Case Management Routes
 
-curl -X POST http://localhost:3000/api/v1/cases \
--H "Authorization: Bearer your_access_token" \
+### Create New Case
+
+```bash
+curl -X POST "${BASE_URL}/cases" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"title":"Case Title","description":"Description","status":"open","officer_user_id":"user_id"}'
+-d '{
+  "title": "Corruption Investigation Case",
+  "description": "Investigation into alleged corruption in department",
+  "status": "intake"
+}'
+```
 
-### List Cases
+**Available Statuses:** `intake`, `ai_analysis`, `awaiting_officer_review`, `awaiting_cvo_review`, `awaiting_legal_review`, `finalized`, `archived`
 
-curl -X GET "http://localhost:3000/api/v1/cases?page=1&limit=10&status=open" \
--H "Authorization: Bearer your_access_token"
+### List Cases with Filters
 
-### Get Case by ID
+```bash
+# Basic listing
+curl -X GET "${BASE_URL}/cases?page=1&limit=10" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
 
-curl -X GET http://localhost:3000/api/v1/cases/{caseId} \
--H "Authorization: Bearer your_access_token"
+# With status filter
+curl -X GET "${BASE_URL}/cases?page=1&limit=10&status=intake" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# With date filter
+curl -X GET "${BASE_URL}/cases?page=1&limit=10&min_created_at=2024-01-01" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Combined filters
+curl -X GET "${BASE_URL}/cases?page=1&limit=20&status=awaiting_officer_review&min_created_at=2024-01-01" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+### Get Specific Case
+
+```bash
+curl -X GET "${BASE_URL}/cases/123" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
 
 ### Add Document to Case
 
-curl -X POST http://localhost:3000/api/v1/cases/{caseId}/documents \
--H "Authorization: Bearer your_access_token" \
--F "file=@/path/to/file.pdf"
-
-### Submit Review for Case
-
-curl -X POST http://localhost:3000/api/v1/cases/{caseId}/review \
--H "Authorization: Bearer your_access_token" \
+```bash
+curl -X POST "${BASE_URL}/cases/123/documents" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"reviewer_id":"user_id","review_text":"Review comments","decision":"approved"}'
+-d '{
+  "cloudinary_public_id": "documents/case_123_doc_1",
+  "secure_url": "https://res.cloudinary.com/your-cloud/document.pdf",
+  "ocr_text": "Extracted text from document..."
+}'
+```
 
-## Plan Routes
+### Submit Case Review
 
-### List Plans
-
-curl -X GET "http://localhost:3000/api/v1/plans?page=1&limit=10" \
--H "Authorization: Bearer your_access_token"
-
-### Create Plan (Admin)
-
-curl -X POST http://localhost:3000/api/v1/plans \
--H "Authorization: Bearer your_access_token" \
+```bash
+# CVO Review
+curl -X POST "${BASE_URL}/cases/123/review" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"name":"Basic Plan","price_monthly":9.99,"features":{}}'
+-d '{
+  "review_text": "Case reviewed and approved for legal board review",
+  "decision": "approved"
+}'
 
-### Update Plan (Admin)
-
-curl -X PUT http://localhost:3000/api/v1/plans/{planId} \
--H "Authorization: Bearer your_access_token" \
+# Legal Board Review
+curl -X POST "${BASE_URL}/cases/123/review" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"price_monthly":19.99}'
+-d '{
+  "review_text": "Legal review completed with recommendations",
+  "decision": "escalated_to_legal"
+}'
+```
 
-### Delete Plan (Admin)
+**Available Decisions:** `pending`, `approved`, `rejected`, `escalated_to_legal`
 
-curl -X DELETE http://localhost:3000/api/v1/plans/{planId} \
--H "Authorization: Bearer your_access_token"
+---
 
-## Subscription Routes
+## 💳 Plan Management Routes
 
-### List Subscriptions
+### List All Plans (Public)
 
-curl -X GET "http://localhost:3000/api/v1/subscriptions?page=1&limit=10&status=active" \
--H "Authorization: Bearer your_access_token"
+```bash
+curl -X GET "${BASE_URL}/plans"
+```
 
-### Create Subscription (Admin)
+### Get Specific Plan (Public)
 
-curl -X POST http://localhost:3000/api/v1/subscriptions \
--H "Authorization: Bearer your_access_token" \
+```bash
+curl -X GET "${BASE_URL}/plans/1"
+```
+
+### Create Plan (Admin Only)
+
+```bash
+curl -X POST "${BASE_URL}/plans" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"user_id":"user_id","plan_id":1,"status":"active"}'
+-d '{
+  "name": "Professional Plan",
+  "price_monthly": 2999.99,
+  "features": {
+    "max_cases": 50,
+    "cvo_review_enabled": true,
+    "legal_board_audit_enabled": true,
+    "ai_analysis_enabled": true,
+    "priority_support": true
+  }
+}'
+```
 
-### Update Subscription (Admin)
+### Update Plan (Admin Only)
 
-curl -X PUT http://localhost:3000/api/v1/subscriptions/{subscriptionId} \
--H "Authorization: Bearer your_access_token" \
+```bash
+curl -X PUT "${BASE_URL}/plans/1" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"status":"cancelled"}'
+-d '{
+  "price_monthly": 3499.99,
+  "features": {
+    "max_cases": 100,
+    "cvo_review_enabled": true,
+    "legal_board_audit_enabled": true,
+    "ai_analysis_enabled": true,
+    "priority_support": true,
+    "advanced_analytics": true
+  }
+}'
+```
 
-### Delete Subscription (Admin)
+### Delete Plan (Admin Only)
 
-curl -X DELETE http://localhost:3000/api/v1/subscriptions/{subscriptionId} \
--H "Authorization: Bearer your_access_token"
+```bash
+curl -X DELETE "${BASE_URL}/plans/1" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
 
-## Admin Routes
+---
 
-### List Users
+## 📊 Subscription Management Routes
 
-curl -X GET "http://localhost:3000/api/v1/admin/users?page=1&limit=10&role=officer&status=active" \
--H "Authorization: Bearer your_access_token"
+### Get User's Active Subscription
 
-### Update User Status
+```bash
+curl -X GET "${BASE_URL}/subscriptions" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
 
-curl -X PUT http://localhost:3000/api/v1/admin/users/{userId}/status \
--H "Authorization: Bearer your_access_token" \
+### Create Subscription (Admin Only)
+
+```bash
+curl -X POST "${BASE_URL}/subscriptions" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"account_status":"active"}'
+-d '{
+  "user_id": 123,
+  "plan_id": 1,
+  "payment_provider_subscription_id": "sub_razorpay_123",
+  "status": "active",
+  "start_date": "2024-01-01T00:00:00Z",
+  "end_date": "2024-12-31T23:59:59Z"
+}'
+```
 
-### List Cases
+### Update Subscription (Admin Only)
 
-curl -X GET "http://localhost:3000/api/v1/admin/cases?page=1&limit=10&status=intake" \
--H "Authorization: Bearer your_access_token"
-
-### List Audit Logs
-
-curl -X GET "http://localhost:3000/api/v1/admin/audit-logs?page=1&limit=10&action=login" \
--H "Authorization: Bearer your_access_token"
-
-## Mail Routes
-
-### Send OTP
-
-curl -X POST http://localhost:3000/api/v1/mail/send-otp \
+```bash
+curl -X PUT "${BASE_URL}/subscriptions/456" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"to":"user@example.com","validityDuration":"10 minutes"}'
+-d '{
+  "status": "cancelled",
+  "end_date": "2024-06-30T23:59:59Z"
+}'
+```
 
-### Send Update Email (Admin)
+### Cancel Subscription (Admin Only)
 
-curl -X POST http://localhost:3000/api/v1/mail/send-update \
--H "Authorization: Bearer your_access_token" \
+```bash
+curl -X DELETE "${BASE_URL}/subscriptions/456" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+---
+
+## 💰 Razorpay Payment Routes
+
+### Create Razorpay Order
+
+```bash
+curl -X POST "${BASE_URL}/razorpay/create-order" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"to":"user@example.com","userName":"John Doe","updateDetails":"Your account has been updated","actionLink":"https://example.com/action"}'
+-d '{
+  "planId": 1,
+  "userId": "123"
+}'
+```
 
-### Send Notification Email (Admin)
+**Response:**
 
-curl -X POST http://localhost:3000/api/v1/mail/send-notification \
--H "Authorization: Bearer your_access_token" \
+```json
+{
+  "id": "order_razorpay_123",
+  "amount": 299999,
+  "currency": "INR",
+  "receipt": "receipt_order_1640995200000",
+  "notes": {
+    "planId": "1",
+    "userId": "123",
+    "originalPriceINR": "2999.99"
+  }
+}
+```
+
+### Verify Payment
+
+```bash
+curl -X POST "${BASE_URL}/razorpay/verify-payment" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"to":"user@example.com","userName":"John Doe","notificationSubject":"Important Notification","notificationBody":"This is a notification","actionLink":"https://example.com/action","actionText":"Click Here"}'
+-d '{
+  "razorpay_order_id": "order_razorpay_123",
+  "razorpay_payment_id": "pay_razorpay_456",
+  "razorpay_signature": "signature_hash_here"
+}'
+```
 
-### Send Welcome Email (Admin)
+### Razorpay Webhook (Called by Razorpay)
 
-curl -X POST http://localhost:3000/api/v1/mail/send-welcome \
--H "Authorization: Bearer your_access_token" \
+```bash
+curl -X POST "${BASE_URL}/razorpay-webhook" \
 -H "Content-Type: application/json" \
--d '{"to":"user@example.com","userName":"John Doe","actionLink":"https://example.com/login"}'
+-H "X-Razorpay-Signature: webhook_signature_here" \
+-d '{
+  "event": "order.paid",
+  "payload": {
+    "order": {
+      "entity": {
+        "id": "order_razorpay_123",
+        "notes": {
+          "userId": "123",
+          "planId": "1"
+        }
+      }
+    },
+    "payment": {
+      "entity": {
+        "id": "pay_razorpay_456"
+      }
+    }
+  }
+}'
+```
 
-### Send Password Reset Email
+---
 
-curl -X POST http://localhost:3000/api/v1/mail/send-password-reset \
+## 📧 Email/Mail Routes
+
+### Send OTP Email
+
+```bash
+curl -X POST "${BASE_URL}/mail/send-otp" \
 -H "Content-Type: application/json" \
--d '{"to":"user@example.com","userName":"John Doe","resetLink":"https://example.com/reset","validityDuration":"1 hour"}'
+-d '{
+  "to": "user@example.com",
+  "validityDuration": "10 minutes"
+}'
+```
 
 ### Verify OTP
 
-curl -X POST http://localhost:3000/api/v1/mail/verify-otp \
+```bash
+curl -X POST "${BASE_URL}/mail/verify-otp" \
 -H "Content-Type: application/json" \
--d '{"to":"user@example.com","otpCode":"123456","is_verified":true}'
+-d '{
+  "to": "user@example.com",
+  "otpCode": "123456",
+  "is_verified": true,
+  "forgot_password": false
+}'
+```
 
-### Send Invoice Email (Admin)
+### Send Welcome Email (Admin Only)
 
-curl -X POST http://localhost:3000/api/v1/mail/send-invoice \
--H "Authorization: Bearer your_access_token" \
+```bash
+curl -X POST "${BASE_URL}/mail/send-welcome" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"to":"user@example.com","invoiceNumber":"INV-001","amountDue":"100.00","dueDate":"2023-12-31","downloadLink":"https://example.com/invoice.pdf"}'
+-d '{
+  "to": "newuser@example.com",
+  "userName": "John Doe",
+  "actionLink": "https://yourapp.com/login"
+}'
+```
 
-### Send Custom Email (Admin)
+### Send Update Notification (Admin Only)
 
-curl -X POST http://localhost:3000/api/v1/mail/send-custom \
--H "Authorization: Bearer your_access_token" \
+```bash
+curl -X POST "${BASE_URL}/mail/send-update" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
--d '{"to":"user@example.com","subject":"Custom Subject","body":"Custom email body"}'
+-d '{
+  "to": "user@example.com",
+  "userName": "John Doe",
+  "updateDetails": "Your account has been upgraded to Professional plan",
+  "actionLink": "https://yourapp.com/dashboard"
+}'
+```
 
-# Notes
+### Send Custom Notification (Admin Only)
 
-- Replace {caseId}, {planId}, {subscriptionId}, {userId} with actual IDs.
-- Replace your_access_token with a valid JWT token.
-- Adjust URLs and ports as per your server configuration.
-- For file uploads, use -F with the file path.
+```bash
+curl -X POST "${BASE_URL}/mail/send-notification" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+-H "Content-Type: application/json" \
+-d '{
+  "to": "user@example.com",
+  "userName": "John Doe",
+  "notificationSubject": "Case Review Completed",
+  "notificationBody": "Your case #123 has been reviewed and approved by the CVO.",
+  "actionLink": "https://yourapp.com/cases/123",
+  "actionText": "View Case"
+}'
+```
+
+### Send Password Reset Email
+
+```bash
+curl -X POST "${BASE_URL}/mail/send-password-reset" \
+-H "Content-Type: application/json" \
+-d '{
+  "to": "user@example.com",
+  "userName": "John Doe",
+  "resetLink": "https://yourapp.com/reset-password?token=abc123",
+  "validityDuration": "1 hour"
+}'
+```
+
+### Send Invoice Email (Admin Only)
+
+```bash
+curl -X POST "${BASE_URL}/mail/send-invoice" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+-H "Content-Type: application/json" \
+-d '{
+  "to": "user@example.com",
+  "invoiceNumber": "INV-2024-001",
+  "amountDue": "2999.99",
+  "dueDate": "2024-02-15",
+  "downloadLink": "https://yourapp.com/invoices/INV-2024-001.pdf"
+}'
+```
+
+### Send Custom Email (Admin Only)
+
+```bash
+curl -X POST "${BASE_URL}/mail/send-custom" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+-H "Content-Type: application/json" \
+-d '{
+  "to": "user@example.com",
+  "subject": "Important System Maintenance Notice",
+  "body": "We will be performing system maintenance on Sunday from 2 AM to 6 AM IST. Please plan accordingly."
+}'
+```
+
+---
+
+## 🛡️ Admin Management Routes
+
+### List All Users
+
+```bash
+# Basic listing
+curl -X GET "${BASE_URL}/admin/users?limit=10&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by role
+curl -X GET "${BASE_URL}/admin/users?role=officer&limit=20" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by account status
+curl -X GET "${BASE_URL}/admin/users?account_status=active&limit=50" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Combined filters
+curl -X GET "${BASE_URL}/admin/users?role=cvo&account_status=active&limit=25&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+### Update User Status
+
+```bash
+curl -X PUT "${BASE_URL}/admin/users/123/status" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+-H "Content-Type: application/json" \
+-d '{
+  "account_status": "active"
+}'
+```
+
+**Available Statuses:** `pending_verification`, `active`, `inactive`, `suspended`
+
+### Update User Role (Owner Only)
+
+```bash
+curl -X PUT "${BASE_URL}/admin/users/123/role" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+-H "Content-Type: application/json" \
+-d '{
+  "role": "cvo"
+}'
+```
+
+### List All Cases (Admin View)
+
+```bash
+# Basic listing
+curl -X GET "${BASE_URL}/admin/cases?limit=10&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by status
+curl -X GET "${BASE_URL}/admin/cases?status=awaiting_cvo_review&limit=20" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by date
+curl -X GET "${BASE_URL}/admin/cases?min_created_at=2024-01-01&limit=50" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Combined filters
+curl -X GET "${BASE_URL}/admin/cases?status=finalized&min_created_at=2024-01-01&limit=25&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+### List All Subscriptions (Admin)
+
+```bash
+# Basic listing
+curl -X GET "${BASE_URL}/admin/subscriptions?limit=10&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by status
+curl -X GET "${BASE_URL}/admin/subscriptions?status=active&limit=20" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by price range
+curl -X GET "${BASE_URL}/admin/subscriptions?min_price=1000&max_price=5000&limit=30" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Combined filters
+curl -X GET "${BASE_URL}/admin/subscriptions?status=active&min_price=2000&limit=25&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+### Create Subscription (Admin)
+
+```bash
+curl -X POST "${BASE_URL}/admin/subscriptions" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+-H "Content-Type: application/json" \
+-d '{
+  "user_id": 123,
+  "plan_id": 1,
+  "payment_provider_subscription_id": "sub_razorpay_789",
+  "status": "active",
+  "start_date": "2024-01-01T00:00:00Z",
+  "end_date": "2024-12-31T23:59:59Z"
+}'
+```
+
+### Update Subscription (Admin)
+
+```bash
+curl -X PUT "${BASE_URL}/admin/subscriptions/456" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+-H "Content-Type: application/json" \
+-d '{
+  "status": "cancelled",
+  "end_date": "2024-06-30T23:59:59Z"
+}'
+```
+
+### Delete Subscription (Admin)
+
+```bash
+curl -X DELETE "${BASE_URL}/admin/subscriptions/456" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+### List All Plans (Admin)
+
+```bash
+curl -X GET "${BASE_URL}/admin/plans?limit=10&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+### Update Plan (Admin)
+
+```bash
+curl -X PUT "${BASE_URL}/admin/plans/1" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+-H "Content-Type: application/json" \
+-d '{
+  "name": "Updated Professional Plan",
+  "price_monthly": 3999.99,
+  "features": {
+    "max_cases": 100,
+    "cvo_review_enabled": true,
+    "legal_board_audit_enabled": true,
+    "ai_analysis_enabled": true,
+    "priority_support": true,
+    "advanced_analytics": true,
+    "custom_reports": true
+  }
+}'
+```
+
+### Delete Plan (Admin)
+
+```bash
+curl -X DELETE "${BASE_URL}/admin/plans/1" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+### List Audit Logs
+
+```bash
+# Basic listing
+curl -X GET "${BASE_URL}/admin/audit-logs?limit=10&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by user
+curl -X GET "${BASE_URL}/admin/audit-logs?user_id=123&limit=20" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by date range
+curl -X GET "${BASE_URL}/admin/audit-logs?min_created_at=2024-01-01&max_created_at=2024-01-31&limit=50" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Combined filters
+curl -X GET "${BASE_URL}/admin/audit-logs?user_id=123&min_created_at=2024-01-01&limit=25&offset=0" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+---
+
+## 📝 Common Query Parameters
+
+### Pagination
+
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 10, max: 100)
+- `offset`: Number of items to skip (alternative to page)
+
+### Date Filters
+
+- `min_created_at`: Filter records created after this date (ISO 8601 format)
+- `max_created_at`: Filter records created before this date (ISO 8601 format)
+
+### Status Filters
+
+- **Case Status**: `intake`, `ai_analysis`, `awaiting_officer_review`, `awaiting_cvo_review`, `awaiting_legal_review`, `finalized`, `archived`
+- **Account Status**: `pending_verification`, `active`, `inactive`, `suspended`
+- **Subscription Status**: `active`, `cancelled`, `past_due`, `trialing`
+- **User Roles**: `officer`, `cvo`, `legal_board`, `admin`, `owner`
+
+### Price Filters (Subscriptions)
+
+- `min_price`: Minimum price filter
+- `max_price`: Maximum price filter
+
+---
+
+## 🔧 Environment Variables
+
+```bash
+# Server Configuration
+PORT=3000
+NODE_ENV=production
+
+# Database
+DATABASE_URL=postgresql://username:password@localhost:5432/dbname
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key
+
+# Razorpay
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# Redis (for caching)
+REDIS_URL=redis://localhost:6379
+```
+
+---
+
+## 🚨 Error Responses
+
+### Common Error Formats
+
+```json
+{
+  "error": "Error message description"
+}
+```
+
+### HTTP Status Codes
+
+- `200`: Success
+- `201`: Created
+- `204`: No Content (successful deletion)
+- `400`: Bad Request (validation errors)
+- `401`: Unauthorized (invalid/missing token)
+- `403`: Forbidden (insufficient permissions)
+- `404`: Not Found
+- `429`: Too Many Requests (rate limiting)
+- `500`: Internal Server Error
+
+---
+
+## 📋 Notes
+
+1. **Authentication**: Most endpoints require a valid JWT token in the Authorization header
+2. **Rate Limiting**: All endpoints have rate limiting applied
+3. **Subscription Features**: Some endpoints require active subscription
+4. **Role-based Access**: Different endpoints require different user roles
+5. **ID Format**: All IDs are now integers (changed from UUIDs)
+6. **Date Format**: Use ISO 8601 format for all dates (YYYY-MM-DDTHH:mm:ssZ)
+7. **File Uploads**: Use multipart/form-data for file uploads to document endpoints
+8. **Webhook Security**: Razorpay webhooks include signature verification
+
+---
+
+## 🔄 Typical Workflow
+
+1. **User Registration & Verification**
+
+   ```bash
+   POST /auth/register → POST /mail/send-otp → POST /mail/verify-otp
+   ```
+
+2. **Login & Profile Setup**
+
+   ```bash
+   POST /auth/login → GET /users/me → PUT /users/me
+   ```
+
+3. **Case Management Flow**
+
+   ```bash
+   POST /cases → POST /cases/{id}/documents → POST /cases/{id}/review
+   ```
+
+4. **Payment Flow**
+
+   ```bash
+   GET /plans → POST /razorpay/create-order → POST /razorpay/verify-payment
+   ```
+
+5. **Admin Management**
+   ```bash
+   GET /admin/users → PUT /admin/users/{id}/status → GET /admin/audit-logs
+   ```

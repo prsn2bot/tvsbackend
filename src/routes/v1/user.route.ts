@@ -1,7 +1,9 @@
 import express from "express";
 import { authenticate } from "../../middleware/auth.middleware";
 import rateLimitMiddleware from "../../middleware/rateLimitMiddleware";
+import { validateBody } from "../../middleware/validation.middleware";
 import { UserController } from "../../controllers/v1/user.controller";
+import { UpdateUserProfileDto } from "../../dto/user.dto";
 
 const router = express.Router();
 
@@ -18,6 +20,7 @@ router.put(
   "/me",
   authenticate,
   rateLimitMiddleware(),
+  validateBody(UpdateUserProfileDto),
   UserController.updateUserProfile
 );
 

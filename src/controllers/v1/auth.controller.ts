@@ -1,34 +1,52 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../../services/auth.service";
+import { asyncHandler } from "../../middleware/errorHandler.middleware";
+import {
+  RegisterDtoType,
+  LoginDtoType,
+  RefreshTokenDtoType,
+} from "../../dto/auth.dto";
 
 export class AuthController {
-  static async register(req: Request, res: Response) {
-    try {
-      const { email, password, role = "officer" } = req.body;
+  static register = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { email, password, role } = req.body as RegisterDtoType;
+
       const user = await AuthService.register(email, password, role);
-      res.status(201).json({ user });
-    } catch (error) {
-      res.status(400).json({ error: (error as Error).message });
-    }
-  }
 
-  static async login(req: Request, res: Response) {
-    try {
-      const { email, password } = req.body;
+      res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+        data: { user },
+      });
+    }
+  );
+
+  static login = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { email, password } = req.body as LoginDtoType;
+
       const tokens = await AuthService.login(email, password);
-      res.json(tokens);
-    } catch (error) {
-      res.status(401).json({ error: (error as Error).message });
-    }
-  }
 
-  static async refreshToken(req: Request, res: Response) {
-    try {
-      const { refreshToken } = req.body;
-      const tokens = await AuthService.refreshToken(refreshToken);
-      res.json(tokens);
-    } catch (error) {
-      res.status(401).json({ error: (error as Error).message });
+      res.json({
+        success: true,
+        message: "Login successful",
+        data: tokens,
+      });
     }
-  }
+  );
+
+  static refreshToken = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { refreshToken } = req.body as RefreshTokenDtoType;
+
+      const tokens = await AuthService.refreshToken(refreshToken);
+
+      res.json({
+        success: true,
+        message: "Token refreshed successfully",
+        data: tokens,
+      });
+    }
+  );
 }

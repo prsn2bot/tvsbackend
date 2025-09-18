@@ -86,18 +86,22 @@ class SubscriptionModel {
         return { data, total };
     }
     static async create(subscriptionData) {
+        const data = {
+            ...subscriptionData,
+            start_date: subscriptionData.start_date || new Date(),
+        };
         const query = `
       INSERT INTO subscriptions (user_id, plan_id, payment_provider_subscription_id, status, start_date, end_date, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, NOW())
       RETURNING *
     `;
         const values = [
-            subscriptionData.user_id,
-            subscriptionData.plan_id,
-            subscriptionData.payment_provider_subscription_id,
-            subscriptionData.status,
-            subscriptionData.start_date,
-            subscriptionData.end_date,
+            data.user_id,
+            data.plan_id,
+            data.payment_provider_subscription_id,
+            data.status,
+            data.start_date,
+            data.end_date,
         ];
         const result = await database_1.pool.query(query, values);
         const row = result.rows[0];

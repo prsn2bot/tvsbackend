@@ -34,7 +34,7 @@ export class SubscriptionService {
   }
 
   static async updateSubscription(
-    id: string,
+    id: number,
     subscriptionData: Partial<{
       status: string;
       end_date: Date;
@@ -44,7 +44,7 @@ export class SubscriptionService {
     return await SubscriptionModel.update(id, subscriptionData);
   }
 
-  static async deleteSubscription(id: string): Promise<boolean> {
+  static async deleteSubscription(id: number): Promise<boolean> {
     return await SubscriptionModel.delete(id);
   }
 }

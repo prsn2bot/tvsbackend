@@ -10,39 +10,44 @@ import {
 } from "../../utils/sendmail";
 import { setCache, getCache, deleteCache } from "../../utils/cache";
 import { UserService } from "../../services/user.service";
+import { asyncHandler } from "../../middleware/errorHandler.middleware";
+import { AppError } from "../../utils/AppError";
+import {
+  SendOtpDtoType,
+  VerifyOtpDtoType,
+  SendUpdateEmailDtoType,
+  SendNotificationEmailDtoType,
+  SendWelcomeEmailDtoType,
+  SendPasswordResetEmailDtoType,
+  SendInvoiceEmailDtoType,
+  SendCustomEmailDtoType,
+} from "../../dto/mail.dto";
 
 const HOUR_IN_SECONDS = 3600;
 const DAY_IN_SECONDS = 86400;
 const MAX_OTP_VERIFY_ATTEMPTS = 5;
 
 export class MailController {
-  static async sendOtp(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { to, validityDuration } = req.body;
-      if (!to || !validityDuration) {
-        return res
-          .status(400)
-          .json({ message: "Missing required fields: to, validityDuration" });
-      }
+  static sendOtp = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { to, validityDuration } = req.body as SendOtpDtoType;
 
       const normalizedEmail = to.toLowerCase();
 
-      // Assuming UserService has a method getUserByEmail or similar
+      // Check if user exists
       const existingUser = await UserService.getUserByEmail(normalizedEmail);
       if (!existingUser) {
-        return res
-          .status(404)
-          .json({ message: "User with this email does not exist." });
+        throw new AppError("User with this email does not exist", 404);
       }
 
       const otpSendCacheKey = `otp_count_hourly_${normalizedEmail}`;
       let otpSendCount = getCache<number>(otpSendCacheKey) || 0;
 
       if (otpSendCount >= 3) {
-        return res.status(429).json({
-          message:
-            "Too many OTP requests for this email address. Please try again after an hour.",
-        });
+        throw new AppError(
+          "Too many OTP requests for this email address. Please try again after an hour",
+          429
+        );
       }
 
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -66,24 +71,21 @@ export class MailController {
       deleteCache(`otp_verify_attempts_${normalizedEmail}`);
 
       await sendOtpEmail(normalizedEmail, otpCode, validityDuration);
-      res.status(200).json({
-        message: "OTP email sent successfully",
-        otpCode,
-        des: "get otp in only for development",
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  static async verifyOtp(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { to, otpCode, is_verified, forgot_password } = req.body;
-      if (!to || !otpCode) {
-        return res
-          .status(400)
-          .json({ message: "Missing required fields: to, otpCode" });
-      }
+      res.status(200).json({
+        success: true,
+        message: "OTP email sent successfully",
+        data: {
+          otpCode: process.env.NODE_ENV === "development" ? otpCode : undefined,
+        },
+      });
+    }
+  );
+
+  static verifyOtp = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { to, otpCode, is_verified, forgot_password } =
+        req.body as VerifyOtpDtoType;
 
       const normalizedEmail = to.toLowerCase();
 
@@ -91,31 +93,31 @@ export class MailController {
       let attempts = getCache<number>(otpVerifyAttemptKey) || 0;
 
       if (attempts >= MAX_OTP_VERIFY_ATTEMPTS) {
-        return res.status(429).json({
-          message:
-            "Too many OTP verification attempts. Please try sending a new OTP.",
-        });
+        throw new AppError(
+          "Too many OTP verification attempts. Please try sending a new OTP",
+          429
+        );
       }
 
       const storedOtp = getCache<string>(`otp_${normalizedEmail}`);
 
       if (!storedOtp) {
         setCache(otpVerifyAttemptKey, attempts + 1, HOUR_IN_SECONDS);
-        return res.status(400).json({ message: "OTP expired or invalid" });
+        throw new AppError("OTP expired or invalid", 400);
       }
 
       if (storedOtp !== otpCode) {
         setCache(otpVerifyAttemptKey, attempts + 1, HOUR_IN_SECONDS);
-        return res.status(400).json({ message: "Invalid OTP" });
+        throw new AppError("Invalid OTP", 400);
       }
 
       deleteCache(`otp_${normalizedEmail}`);
       deleteCache(otpVerifyAttemptKey);
 
-      const user = await UserService.getUserProfile(normalizedEmail);
+      const user = await UserService.getUserByEmail(normalizedEmail);
 
       if (!user) {
-        return res.status(404).json({ message: "User not found." });
+        throw new AppError("User not found", 404);
       }
 
       if (is_verified === true) {
@@ -126,35 +128,29 @@ export class MailController {
         // Implement password reset token generation and response here if needed
       }
 
-      res.status(200).json({ message: "OTP verified successfully" });
-    } catch (error) {
-      next(error);
+      res.status(200).json({
+        success: true,
+        message: "OTP verified successfully",
+      });
     }
-  }
+  );
 
-  static async sendUpdate(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { to, userName, updateDetails, actionLink } = req.body;
-      if (!to || !userName || !updateDetails) {
-        return res.status(400).json({
-          message: "Missing required fields: to, userName, updateDetails",
-        });
-      }
+  static sendUpdate = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { to, userName, updateDetails, actionLink } =
+        req.body as SendUpdateEmailDtoType;
+
       await sendUpdateEmail(to, userName, updateDetails, actionLink);
-      res
-        .status(200)
-        .json({ message: "Account update email sent successfully" });
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  static async sendNotification(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
+      res.status(200).json({
+        success: true,
+        message: "Account update email sent successfully",
+      });
+    }
+  );
+
+  static sendNotification = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
       const {
         to,
         userName,
@@ -162,13 +158,8 @@ export class MailController {
         notificationBody,
         actionLink,
         actionText,
-      } = req.body;
-      if (!to || !userName || !notificationSubject || !notificationBody) {
-        return res.status(400).json({
-          message:
-            "Missing required fields: to, userName, notificationSubject, notificationBody",
-        });
-      }
+      } = req.body as SendNotificationEmailDtoType;
+
       await sendNotificationEmail(
         to,
         userName,
@@ -177,67 +168,55 @@ export class MailController {
         actionLink,
         actionText
       );
-      res.status(200).json({ message: "Notification email sent successfully" });
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  static async sendWelcome(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { to, userName, actionLink } = req.body;
-      if (!to || !userName) {
-        return res
-          .status(400)
-          .json({ message: "Missing required fields: to, userName" });
-      }
+      res.status(200).json({
+        success: true,
+        message: "Notification email sent successfully",
+      });
+    }
+  );
+
+  static sendWelcome = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { to, userName, actionLink } = req.body as SendWelcomeEmailDtoType;
 
       const welcomeCacheKey = `welcome_sent_${to}`;
       if (getCache<boolean>(welcomeCacheKey)) {
-        return res.status(429).json({
-          message: "Welcome email already sent to this email address today.",
-        });
+        throw new AppError(
+          "Welcome email already sent to this email address today",
+          429
+        );
       }
       setCache(welcomeCacheKey, true, DAY_IN_SECONDS);
 
       await sendWelcomeEmail(to, userName, actionLink);
-      res.status(200).json({ message: "Welcome email sent successfully" });
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  static async sendPasswordReset(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const { to, userName, resetLink, validityDuration } = req.body;
-      if (!to || !userName || !resetLink || !validityDuration) {
-        return res.status(400).json({
-          message:
-            "Missing required fields: to, userName, resetLink, validityDuration",
-        });
-      }
+      res.status(200).json({
+        success: true,
+        message: "Welcome email sent successfully",
+      });
+    }
+  );
+
+  static sendPasswordReset = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { to, userName, resetLink, validityDuration } =
+        req.body as SendPasswordResetEmailDtoType;
+
       await sendPasswordResetEmail(to, userName, resetLink, validityDuration);
-      res
-        .status(200)
-        .json({ message: "Password reset email sent successfully" });
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  static async sendInvoice(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { to, invoiceNumber, amountDue, dueDate, downloadLink } = req.body;
-      if (!to || !invoiceNumber || !amountDue || !dueDate) {
-        return res.status(400).json({
-          message:
-            "Missing required fields: to, invoiceNumber, amountDue, dueDate",
-        });
-      }
+      res.status(200).json({
+        success: true,
+        message: "Password reset email sent successfully",
+      });
+    }
+  );
+
+  static sendInvoice = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { to, invoiceNumber, amountDue, dueDate, downloadLink } =
+        req.body as SendInvoiceEmailDtoType;
+
       await sendInvoiceEmail(
         to,
         invoiceNumber,
@@ -245,24 +224,24 @@ export class MailController {
         dueDate,
         downloadLink
       );
-      res.status(200).json({ message: "Invoice email sent successfully" });
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  static async sendCustom(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { to, subject, body } = req.body;
-      if (!to || !subject || !body) {
-        return res
-          .status(400)
-          .json({ message: "Missing required fields: to, subject, body" });
-      }
-      await sendCustomEmail(to, subject, body);
-      res.status(200).json({ message: "Custom email sent successfully" });
-    } catch (error) {
-      next(error);
+      res.status(200).json({
+        success: true,
+        message: "Invoice email sent successfully",
+      });
     }
-  }
+  );
+
+  static sendCustom = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { to, subject, body } = req.body as SendCustomEmailDtoType;
+
+      await sendCustomEmail(to, subject, body);
+
+      res.status(200).json({
+        success: true,
+        message: "Custom email sent successfully",
+      });
+    }
+  );
 }

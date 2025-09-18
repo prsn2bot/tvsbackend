@@ -91,13 +91,17 @@ app.get("/health", (req: Request, res: Response) => {
   res.status(200).send("OK");
 });
 
-// Generic error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack); // Log the error stack for debugging
-  res
-    .status(500)
-    .json({ message: "Something went wrong!", error: err.message });
-});
+// Import error handling middleware
+import {
+  errorHandler,
+  notFoundHandler,
+} from "./middleware/errorHandler.middleware";
+
+// 404 handler for undefined routes (must be after all route definitions)
+app.use(notFoundHandler);
+
+// Global error handling middleware (must be last)
+app.use(errorHandler);
 
 // Start server
 app.listen(port, () => {

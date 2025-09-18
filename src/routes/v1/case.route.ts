@@ -2,7 +2,20 @@ import express from "express";
 import { authenticate, hasRole } from "../../middleware/auth.middleware";
 import rateLimitMiddleware from "../../middleware/rateLimitMiddleware";
 import subscriptionFeatureMiddleware from "../../middleware/subscriptionFeature.middleware";
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+  validateAll,
+} from "../../middleware/validation.middleware";
 import { CaseController } from "../../controllers/v1/case.controller";
+import {
+  CreateCaseDto,
+  AddDocumentDto,
+  SubmitReviewDto,
+  CaseQueryDto,
+  CaseParamsDto,
+} from "../../dto/case.dto";
 
 const router = express.Router();
 
@@ -13,6 +26,7 @@ router.post(
   hasRole(["officer", "owner"]),
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
+  validateBody(CreateCaseDto),
   CaseController.createCase
 );
 
@@ -22,6 +36,7 @@ router.get(
   authenticate,
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
+  validateQuery(CaseQueryDto),
   CaseController.getCases
 );
 
@@ -31,6 +46,7 @@ router.get(
   authenticate,
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
+  validateParams(CaseParamsDto),
   CaseController.getCaseById
 );
 
@@ -40,6 +56,7 @@ router.post(
   authenticate,
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
+  validateAll(AddDocumentDto, undefined, CaseParamsDto),
   CaseController.addDocument
 );
 
@@ -50,6 +67,7 @@ router.post(
   hasRole(["cvo", "legal_board", "owner"]),
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
+  validateAll(SubmitReviewDto, undefined, CaseParamsDto),
   CaseController.submitReview
 );
 

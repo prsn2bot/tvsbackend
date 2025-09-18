@@ -72,13 +72,12 @@ function bullBoardAuth(req, res, next) {
 app.get("/health", (req, res) => {
     res.status(200).send("OK");
 });
-// Generic error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack); // Log the error stack for debugging
-    res
-        .status(500)
-        .json({ message: "Something went wrong!", error: err.message });
-});
+// Import error handling middleware
+const errorHandler_middleware_1 = require("./middleware/errorHandler.middleware");
+// 404 handler for undefined routes (must be after all route definitions)
+app.use(errorHandler_middleware_1.notFoundHandler);
+// Global error handling middleware (must be last)
+app.use(errorHandler_middleware_1.errorHandler);
 // Start server
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);

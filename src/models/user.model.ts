@@ -180,7 +180,7 @@ export class UserModel {
   }
 
   static async updateUserStatus(
-    userId: string,
+    userId: number,
     accountStatus: string
   ): Promise<void> {
     const query = `
@@ -191,7 +191,7 @@ export class UserModel {
     await pool.query(query, [accountStatus, userId]);
   }
 
-  static async updateUserRole(userId: string, role: string): Promise<void> {
+  static async updateUserRole(userId: number, role: string): Promise<void> {
     const query = `
       UPDATE users
       SET role = $1, updated_at = NOW()

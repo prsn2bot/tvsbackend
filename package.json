@@ -49,7 +49,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "winston": "^3.17.0",
-    "zod": "^3.25.51"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/basic-auth": "^1.1.8",

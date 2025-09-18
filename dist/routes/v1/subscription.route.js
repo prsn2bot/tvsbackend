@@ -33,9 +33,16 @@ router.post("/", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(
 // PUT /:id - Update a subscription
 router.put("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
-        const id = req.params.id;
+        const { id } = req.params;
         const subscriptionData = req.body;
-        const updatedSubscription = await subscription_service_1.SubscriptionService.updateSubscription(id, subscriptionData);
+        // Convert id to number and validate
+        const numericId = parseInt(id, 10);
+        if (isNaN(numericId)) {
+            return res
+                .status(400)
+                .json({ error: "Invalid subscription ID format" });
+        }
+        const updatedSubscription = await subscription_service_1.SubscriptionService.updateSubscription(numericId, subscriptionData);
         if (!updatedSubscription) {
             return res.status(404).json({ message: "Subscription not found" });
         }
@@ -48,8 +55,15 @@ router.put("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole
 // DELETE /:id - Cancel a subscription
 router.delete("/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), async (req, res, next) => {
     try {
-        const id = req.params.id;
-        const deleted = await subscription_service_1.SubscriptionService.deleteSubscription(id);
+        const { id } = req.params;
+        // Convert id to number and validate
+        const numericId = parseInt(id, 10);
+        if (isNaN(numericId)) {
+            return res
+                .status(400)
+                .json({ error: "Invalid subscription ID format" });
+        }
+        const deleted = await subscription_service_1.SubscriptionService.deleteSubscription(numericId);
         if (!deleted) {
             return res.status(404).json({ message: "Subscription not found" });
         }

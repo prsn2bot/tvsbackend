@@ -1,41 +1,44 @@
 import { Request, Response, NextFunction } from "express";
 import { UserService } from "../../services/user.service";
-import { ApiResponse } from "../../types/common.types";
-import { UserWithProfile } from "../../types/user.types";
+import { asyncHandler } from "../../middleware/errorHandler.middleware";
+import { UpdateUserProfileDtoType } from "../../dto/user.dto";
+import { AppError } from "../../utils/AppError";
 
 export class UserController {
-  static async getUserProfile(req: Request, res: Response, next: NextFunction) {
-    try {
+  static getUserProfile = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
       const userId = req.user?.userId;
       if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
+
       const userProfile = await UserService.getUserProfile(userId);
       if (!userProfile) {
-        return res.status(404).json({ message: "User not found" });
+        throw new AppError("User not found", 404);
       }
-      const response: ApiResponse<UserWithProfile> = { data: userProfile };
-      res.status(200).json(response);
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  static async updateUserProfile(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
+      res.status(200).json({
+        success: true,
+        message: "User profile retrieved successfully",
+        data: userProfile,
+      });
+    }
+  );
+
+  static updateUserProfile = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
       const userId = req.user?.userId;
       if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
-      const profileData = req.body;
+
+      const profileData = req.body as UpdateUserProfileDtoType;
       await UserService.updateUserProfile(userId, profileData);
-      res.status(200).json({ message: "Profile updated successfully" });
-    } catch (error) {
-      next(error);
+
+      res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+      });
     }
-  }
+  );
 }

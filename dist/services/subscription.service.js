@@ -10,7 +10,11 @@ class SubscriptionService {
         return await subscription_model_1.SubscriptionModel.findAll(filters, pagination);
     }
     static async createSubscription(subscriptionData) {
-        return await subscription_model_1.SubscriptionModel.create(subscriptionData);
+        const data = {
+            ...subscriptionData,
+            start_date: subscriptionData.start_date || new Date(),
+        };
+        return await subscription_model_1.SubscriptionModel.create(data);
     }
     static async updateSubscription(id, subscriptionData) {
         return await subscription_model_1.SubscriptionModel.update(id, subscriptionData);

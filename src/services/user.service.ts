@@ -40,13 +40,13 @@ export class UserService {
   }
 
   static async updateUserStatus(
-    userId: string,
+    userId: number,
     accountStatus: string
   ): Promise<void> {
     await UserModel.updateUserStatus(userId, accountStatus);
   }
 
-  static async updateUserRole(userId: string, role: string): Promise<void> {
+  static async updateUserRole(userId: number, role: string): Promise<void> {
     await UserModel.updateUserRole(userId, role);
   }
 }

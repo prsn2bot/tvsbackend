@@ -142,7 +142,7 @@ export class SubscriptionModel {
   }
 
   static async update(
-    id: string,
+    id: number,
     subscriptionData: Partial<{
       status: string;
       end_date: Date;
@@ -155,7 +155,7 @@ export class SubscriptionModel {
     const setClause = fields
       .map((field, index) => `${field} = $${index + 2}`)
       .join(", ");
-    const values = fields.map(
+    const values: any[] = fields.map(
       (field) => subscriptionData[field as keyof typeof subscriptionData]
     );
     values.unshift(id);
@@ -176,7 +176,7 @@ export class SubscriptionModel {
     };
   }
 
-  static async delete(id: string): Promise<boolean> {
+  static async delete(id: number): Promise<boolean> {
     const query = `DELETE FROM subscriptions WHERE id = $1`;
     const result = await pool.query(query, [id]);
     return (result.rowCount ?? 0) > 0;

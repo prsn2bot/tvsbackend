@@ -8,7 +8,7 @@ export type AccountStatus =
 
 // Represents the `users` table (for authentication)
 export interface User {
-  id: string; // UUID
+  id: number; // SERIAL PRIMARY KEY (integer)
   email: string;
   password_hash: string;
   role: UserRole;
