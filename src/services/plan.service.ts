@@ -18,6 +18,10 @@ export class PlanService {
   static async createPlan(planData: {
     name: string;
     price_monthly: number;
+    price_quarterly: number;
+    price_half_yearly: number;
+    price_yearly: number;
+    is_popular: boolean;
     features: any;
   }): Promise<Plan> {
     return await PlanModel.create(planData);
@@ -25,7 +29,15 @@ export class PlanService {
 
   static async updatePlan(
     id: number,
-    planData: Partial<{ name: string; price_monthly: number; features: any }>
+    planData: Partial<{
+      name: string;
+      price_monthly: number;
+      price_quarterly: number;
+      price_half_yearly: number;
+      price_yearly: number;
+      is_popular: boolean;
+      features: any;
+    }>
   ): Promise<Plan | null> {
     return await PlanModel.update(id, planData);
   }

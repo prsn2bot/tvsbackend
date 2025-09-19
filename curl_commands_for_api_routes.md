@@ -71,11 +71,6 @@ curl -X POST "${BASE_URL}/auth/refresh-token" \
 }'
 ```
 
-**Token Expiration:**
-
-- Access Token: 1 hour
-- Refresh Token: 7 days
-
 ---
 
 ## 👤 User Profile Routes
@@ -169,7 +164,11 @@ curl -X POST "${BASE_URL}/cases/123/documents" \
 -d '{
   "cloudinary_public_id": "documents/case_123_doc_1",
   "secure_url": "https://res.cloudinary.com/your-cloud/document.pdf",
-  "ocr_text": "Extracted text from document..."
+  "ocr_text": "Extracted text from document...",
+  "ocr_method_used": "tesseract",
+  "ocr_confidence": 0.95,
+  "ocr_processing_time": 2.5,
+  "ocr_retry_count": 0
 }'
 ```
 
@@ -204,7 +203,11 @@ curl -X POST "${BASE_URL}/cases/123/review" \
 ### List All Plans (Public)
 
 ```bash
-curl -X GET "${BASE_URL}/plans"
+# Basic listing
+curl -X GET "${BASE_URL}/plans?page=1&limit=10"
+
+# Search by plan name
+curl -X GET "${BASE_URL}/plans?q=professional&page=1&limit=10"
 ```
 
 ### Get Specific Plan (Public)
@@ -503,19 +506,27 @@ curl -X POST "${BASE_URL}/mail/send-custom" \
 
 ```bash
 # Basic listing
-curl -X GET "${BASE_URL}/admin/users?limit=10&offset=0" \
+curl -X GET "${BASE_URL}/admin/users?page=1&limit=10" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Filter by role
-curl -X GET "${BASE_URL}/admin/users?role=officer&limit=20" \
+curl -X GET "${BASE_URL}/admin/users?role=officer&page=1&limit=20" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Filter by account status
-curl -X GET "${BASE_URL}/admin/users?account_status=active&limit=50" \
+curl -X GET "${BASE_URL}/admin/users?account_status=active&page=1&limit=50" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by date range
+curl -X GET "${BASE_URL}/admin/users?min_created_at=2024-01-01T00:00:00Z&max_created_at=2024-12-31T23:59:59Z&page=1&limit=25" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Search by email or name
+curl -X GET "${BASE_URL}/admin/users?q=john&page=1&limit=10" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Combined filters
-curl -X GET "${BASE_URL}/admin/users?role=cvo&account_status=active&limit=25&offset=0" \
+curl -X GET "${BASE_URL}/admin/users?role=cvo&account_status=active&min_created_at=2024-01-01T00:00:00Z&page=1&limit=25" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 ```
 
@@ -547,19 +558,27 @@ curl -X PUT "${BASE_URL}/admin/users/123/role" \
 
 ```bash
 # Basic listing
-curl -X GET "${BASE_URL}/admin/cases?limit=10&offset=0" \
+curl -X GET "${BASE_URL}/admin/cases?page=1&limit=10" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Filter by status
-curl -X GET "${BASE_URL}/admin/cases?status=awaiting_cvo_review&limit=20" \
+curl -X GET "${BASE_URL}/admin/cases?status=awaiting_cvo_review&page=1&limit=20" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
-# Filter by date
-curl -X GET "${BASE_URL}/admin/cases?min_created_at=2024-01-01&limit=50" \
+# Filter by date range
+curl -X GET "${BASE_URL}/admin/cases?min_created_at=2024-01-01T00:00:00Z&max_created_at=2024-12-31T23:59:59Z&page=1&limit=50" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Filter by user
+curl -X GET "${BASE_URL}/admin/cases?user_id=123&page=1&limit=25" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Search by case title
+curl -X GET "${BASE_URL}/admin/cases?q=corruption&page=1&limit=10" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Combined filters
-curl -X GET "${BASE_URL}/admin/cases?status=finalized&min_created_at=2024-01-01&limit=25&offset=0" \
+curl -X GET "${BASE_URL}/admin/cases?q=investigation&status=finalized&min_created_at=2024-01-01T00:00:00Z&user_id=123&page=1&limit=25" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 ```
 
@@ -567,19 +586,19 @@ curl -X GET "${BASE_URL}/admin/cases?status=finalized&min_created_at=2024-01-01&
 
 ```bash
 # Basic listing
-curl -X GET "${BASE_URL}/admin/subscriptions?limit=10&offset=0" \
+curl -X GET "${BASE_URL}/admin/subscriptions?page=1&limit=10" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Filter by status
-curl -X GET "${BASE_URL}/admin/subscriptions?status=active&limit=20" \
+curl -X GET "${BASE_URL}/admin/subscriptions?status=active&page=1&limit=20" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Filter by price range
-curl -X GET "${BASE_URL}/admin/subscriptions?min_price=1000&max_price=5000&limit=30" \
+curl -X GET "${BASE_URL}/admin/subscriptions?min_price=1000&max_price=5000&page=1&limit=30" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Combined filters
-curl -X GET "${BASE_URL}/admin/subscriptions?status=active&min_price=2000&limit=25&offset=0" \
+curl -X GET "${BASE_URL}/admin/subscriptions?status=active&min_price=2000&page=1&limit=25" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 ```
 
@@ -621,7 +640,7 @@ curl -X DELETE "${BASE_URL}/admin/subscriptions/456" \
 ### List All Plans (Admin)
 
 ```bash
-curl -X GET "${BASE_URL}/admin/plans?limit=10&offset=0" \
+curl -X GET "${BASE_URL}/admin/plans?page=1&limit=10" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 ```
 
@@ -657,19 +676,19 @@ curl -X DELETE "${BASE_URL}/admin/plans/1" \
 
 ```bash
 # Basic listing
-curl -X GET "${BASE_URL}/admin/audit-logs?limit=10&offset=0" \
+curl -X GET "${BASE_URL}/admin/audit-logs?page=1&limit=10" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Filter by user
-curl -X GET "${BASE_URL}/admin/audit-logs?user_id=123&limit=20" \
+curl -X GET "${BASE_URL}/admin/audit-logs?user_id=123&page=1&limit=20" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Filter by date range
-curl -X GET "${BASE_URL}/admin/audit-logs?min_created_at=2024-01-01&max_created_at=2024-01-31&limit=50" \
+curl -X GET "${BASE_URL}/admin/audit-logs?min_created_at=2024-01-01T00:00:00Z&max_created_at=2024-01-31T23:59:59Z&page=1&limit=50" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # Combined filters
-curl -X GET "${BASE_URL}/admin/audit-logs?user_id=123&min_created_at=2024-01-01&limit=25&offset=0" \
+curl -X GET "${BASE_URL}/admin/audit-logs?user_id=123&min_created_at=2024-01-01T00:00:00Z&max_created_at=2024-01-31T23:59:59Z&page=1&limit=25" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 ```
 
@@ -699,6 +718,10 @@ curl -X GET "${BASE_URL}/admin/audit-logs?user_id=123&min_created_at=2024-01-01&
 
 - `min_price`: Minimum price filter
 - `max_price`: Maximum price filter
+
+### Search Parameters
+
+- `q`: Search query for text-based fields (case titles, user emails/names, plan names, etc.)
 
 ---
 
@@ -804,30 +827,3 @@ REDIS_URL=redis://localhost:6379
    ```bash
    GET /admin/users → PUT /admin/users/{id}/status → GET /admin/audit-logs
    ```
-   <path>curl_commands_for_api_routes.md</path>
-   <content>
-   <<<<<<< SEARCH
-
-## Base Configuration
-
-```bash
-BASE_URL="http://localhost:3000/api/v1"
-ACCESS_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-REFRESH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-=======
-
-## Base Configuration
-
-```bash
-BASE_URL="http://localhost:3000/api/v1"
-ACCESS_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-REFRESH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-**Token Expiration:**
-
-- Access Token: Expires in 1 hour
-- Refresh Token: Expires in 7 days
-- OTP: Expires in 15 minutes (default)

@@ -15,5 +15,9 @@ export interface Plan {
   id: number;
   name: string;
   price_monthly: number;
+  price_quarterly: number;
+  price_half_yearly: number;
+  price_yearly: number;
+  is_popular: boolean;
   features: PlanFeatures;
 }
