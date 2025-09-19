@@ -29,6 +29,19 @@ exports.CreatePlanDto = zod_1.z.object({
         .number()
         .min(0, "Price must be 0 or greater")
         .max(999999.99, "Price must be less than 999999.99"),
+    price_quarterly: zod_1.z
+        .number()
+        .min(0, "Price must be 0 or greater")
+        .max(999999.99, "Price must be less than 999999.99"),
+    price_half_yearly: zod_1.z
+        .number()
+        .min(0, "Price must be 0 or greater")
+        .max(999999.99, "Price must be less than 999999.99"),
+    price_yearly: zod_1.z
+        .number()
+        .min(0, "Price must be 0 or greater")
+        .max(999999.99, "Price must be less than 999999.99"),
+    is_popular: zod_1.z.boolean().default(false),
     features: PlanFeaturesSchema.default({}),
 });
 // Update Plan DTO
@@ -43,6 +56,22 @@ exports.UpdatePlanDto = zod_1.z.object({
         .min(0, "Price must be 0 or greater")
         .max(999999.99, "Price must be less than 999999.99")
         .optional(),
+    price_quarterly: zod_1.z
+        .number()
+        .min(0, "Price must be 0 or greater")
+        .max(999999.99, "Price must be less than 999999.99")
+        .optional(),
+    price_half_yearly: zod_1.z
+        .number()
+        .min(0, "Price must be 0 or greater")
+        .max(999999.99, "Price must be less than 999999.99")
+        .optional(),
+    price_yearly: zod_1.z
+        .number()
+        .min(0, "Price must be 0 or greater")
+        .max(999999.99, "Price must be less than 999999.99")
+        .optional(),
+    is_popular: zod_1.z.boolean().optional(),
     features: PlanFeaturesSchema.optional(),
 });
 // Plan Query Parameters DTO

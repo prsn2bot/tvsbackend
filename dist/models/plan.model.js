@@ -21,9 +21,9 @@ class PlanModel {
         const limit = filters?.limit || 10;
         const offset = filters?.offset || 0;
         const dataQuery = `
-      SELECT * FROM plans 
+      SELECT * FROM plans
       ${whereClause}
-      ORDER BY id 
+      ORDER BY id
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
         values.push(limit, offset);
@@ -32,6 +32,10 @@ class PlanModel {
             id: row.id,
             name: row.name,
             price_monthly: row.price_monthly,
+            price_quarterly: row.price_quarterly,
+            price_half_yearly: row.price_half_yearly,
+            price_yearly: row.price_yearly,
+            is_popular: row.is_popular,
             features: row.features,
         }));
         return { data, total };
@@ -44,6 +48,10 @@ class PlanModel {
             id: row.id,
             name: row.name,
             price_monthly: row.price_monthly,
+            price_quarterly: row.price_quarterly,
+            price_half_yearly: row.price_half_yearly,
+            price_yearly: row.price_yearly,
+            is_popular: row.is_popular,
             features: row.features,
         }));
     }
@@ -57,22 +65,38 @@ class PlanModel {
             id: row.id,
             name: row.name,
             price_monthly: row.price_monthly,
+            price_quarterly: row.price_quarterly,
+            price_half_yearly: row.price_half_yearly,
+            price_yearly: row.price_yearly,
+            is_popular: row.is_popular,
             features: row.features,
         };
     }
     static async create(planData) {
         const query = `
-      INSERT INTO plans (name, price_monthly, features)
-      VALUES ($1, $2, $3)
+      INSERT INTO plans (name, price_monthly, price_quarterly, price_half_yearly, price_yearly, is_popular, features)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-        const values = [planData.name, planData.price_monthly, planData.features];
+        const values = [
+            planData.name,
+            planData.price_monthly,
+            planData.price_quarterly,
+            planData.price_half_yearly,
+            planData.price_yearly,
+            planData.is_popular,
+            planData.features,
+        ];
         const result = await database_1.pool.query(query, values);
         const row = result.rows[0];
         return {
             id: row.id,
             name: row.name,
             price_monthly: row.price_monthly,
+            price_quarterly: row.price_quarterly,
+            price_half_yearly: row.price_half_yearly,
+            price_yearly: row.price_yearly,
+            is_popular: row.is_popular,
             features: row.features,
         };
     }
@@ -94,6 +118,10 @@ class PlanModel {
             id: row.id,
             name: row.name,
             price_monthly: row.price_monthly,
+            price_quarterly: row.price_quarterly,
+            price_half_yearly: row.price_half_yearly,
+            price_yearly: row.price_yearly,
+            is_popular: row.is_popular,
             features: row.features,
         };
     }

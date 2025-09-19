@@ -5,7 +5,7 @@ const database_1 = require("../config/database");
 class SubscriptionModel {
     static async findByUserId(userId) {
         const query = `
-      SELECT s.*, p.name as plan_name, p.price_monthly, p.features
+      SELECT s.*, p.name as plan_name, p.price_monthly, p.price_quarterly, p.price_half_yearly, p.price_yearly, p.is_popular, p.features
       FROM subscriptions s
       JOIN plans p ON s.plan_id = p.id
       WHERE s.user_id = $1 AND s.status = 'active'
@@ -29,6 +29,10 @@ class SubscriptionModel {
                 id: row.plan_id,
                 name: row.plan_name,
                 price_monthly: row.price_monthly,
+                price_quarterly: row.price_quarterly,
+                price_half_yearly: row.price_half_yearly,
+                price_yearly: row.price_yearly,
+                is_popular: row.is_popular,
                 features: row.features,
             },
         };
@@ -58,7 +62,7 @@ class SubscriptionModel {
         const countResult = await database_1.pool.query(countQuery, values);
         const total = parseInt(countResult.rows[0].count, 10);
         const dataQuery = `
-      SELECT s.*, p.name as plan_name, p.price_monthly, p.features
+      SELECT s.*, p.name as plan_name, p.price_monthly, p.price_quarterly, p.price_half_yearly, p.price_yearly, p.is_popular, p.features
       FROM subscriptions s
       JOIN plans p ON s.plan_id = p.id
       ${whereClause}
@@ -80,6 +84,10 @@ class SubscriptionModel {
                 id: row.plan_id,
                 name: row.plan_name,
                 price_monthly: row.price_monthly,
+                price_quarterly: row.price_quarterly,
+                price_half_yearly: row.price_half_yearly,
+                price_yearly: row.price_yearly,
+                is_popular: row.is_popular,
                 features: row.features,
             },
         }));
