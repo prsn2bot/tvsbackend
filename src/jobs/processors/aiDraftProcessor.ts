@@ -34,7 +34,10 @@ const aiDraftProcessor = async (job: Job<AiProcessingJobData>) => {
     );
 
     // Mark document as OCR pending
-    await ocrMetadataService.markDocumentOcrPending(documentId, "auto-detect");
+    await ocrMetadataService.markDocumentOcrPending(
+      documentId,
+      "pdf-extraction"
+    );
 
     let ocrText: string;
     let retryCount = 0;
@@ -80,7 +83,7 @@ const aiDraftProcessor = async (job: Job<AiProcessingJobData>) => {
       // Update document with failure information
       await ocrMetadataService.updateDocumentWithOcrFailure(
         documentId,
-        "orchestrator-fallback",
+        "cloudinary-fallback",
         errorMessage,
         retryCount
       );
@@ -143,7 +146,7 @@ const aiDraftProcessor = async (job: Job<AiProcessingJobData>) => {
         error instanceof Error ? error.message : "AI processing failed";
       await ocrMetadataService.updateDocumentWithOcrFailure(
         documentId,
-        "ai-processing-error",
+        "cloudinary-fallback",
         errorMessage
       );
     } catch (updateError) {

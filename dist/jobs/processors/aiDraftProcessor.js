@@ -27,7 +27,7 @@ const aiDraftProcessor = async (job) => {
         // 2. Get the document's text using enhanced OCR service
         logger_1.default.info(`Starting OCR processing for document ${documentId} (Cloudinary ID: ${document.cloudinary_public_id})`);
         // Mark document as OCR pending
-        await ocrMetadata_service_1.ocrMetadataService.markDocumentOcrPending(documentId, "auto-detect");
+        await ocrMetadata_service_1.ocrMetadataService.markDocumentOcrPending(documentId, "pdf-extraction");
         let ocrText;
         let retryCount = 0;
         try {
@@ -57,7 +57,7 @@ const aiDraftProcessor = async (job) => {
                 cloudinaryId: document.cloudinary_public_id,
             });
             // Update document with failure information
-            await ocrMetadata_service_1.ocrMetadataService.updateDocumentWithOcrFailure(documentId, "orchestrator-fallback", errorMessage, retryCount);
+            await ocrMetadata_service_1.ocrMetadataService.updateDocumentWithOcrFailure(documentId, "cloudinary-fallback", errorMessage, retryCount);
             // For backward compatibility, still try to get some text
             // This ensures the AI processing can continue even if OCR fails
             ocrText = `[OCR Processing Failed: ${errorMessage}]`;
@@ -97,7 +97,7 @@ const aiDraftProcessor = async (job) => {
         // Update document status to failed if possible
         try {
             const errorMessage = error instanceof Error ? error.message : "AI processing failed";
-            await ocrMetadata_service_1.ocrMetadataService.updateDocumentWithOcrFailure(documentId, "ai-processing-error", errorMessage);
+            await ocrMetadata_service_1.ocrMetadataService.updateDocumentWithOcrFailure(documentId, "cloudinary-fallback", errorMessage);
         }
         catch (updateError) {
             logger_1.default.error(`Failed to update document status to failed:`, updateError);

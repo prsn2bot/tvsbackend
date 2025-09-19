@@ -1,6 +1,5 @@
-import * as pdfjs from "pdfjs-dist";
 import { createCanvas } from "canvas";
-import { PdfExtractionResult, OcrError, OcrMethod } from "./types/ocr.types";
+import { PdfExtractionResult, OcrMethod } from "./types/ocr.types";
 import {
   EnhancedOcrError,
   OcrErrorFactory,
@@ -12,13 +11,37 @@ import logger from "../../utils/logger";
 import fs from "fs";
 import path from "path";
 
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = require.resolve(
-  "pdfjs-dist/build/pdf.worker.js"
-);
+// PDF.js will be imported dynamically to avoid ES module issues
+let pdfjs: any = null;
 
 export class PdfExtractorService {
   private readonly method: OcrMethod = "pdf-extraction";
+
+  /**
+   * Initialize PDF.js dynamically to avoid ES module issues
+   */
+  private async initializePdfjs(): Promise<any> {
+    if (!pdfjs) {
+      try {
+        pdfjs = await import("pdfjs-dist");
+        // Configure PDF.js worker
+        pdfjs.GlobalWorkerOptions.workerSrc = require.resolve(
+          "pdfjs-dist/build/pdf.worker.js"
+        );
+        logger.debug("PDF.js initialized successfully");
+      } catch (error) {
+        logger.error("Failed to initialize PDF.js:", error);
+        throw new EnhancedOcrError(
+          "Failed to initialize PDF.js library",
+          this.method,
+          OCR_ERROR_CODES.PROCESSING_FAILED,
+          undefined,
+          error instanceof Error ? error : new Error(String(error))
+        );
+      }
+    }
+    return pdfjs;
+  }
 
   /**
    * Extracts text from a PDF document
@@ -150,13 +173,12 @@ export class PdfExtractorService {
   /**
    * Loads PDF document using PDF.js
    */
-  private async loadPdfDocument(
-    filePath: string
-  ): Promise<pdfjs.PDFDocumentProxy> {
+  private async loadPdfDocument(filePath: string): Promise<any> {
     try {
+      const pdfjsLib = await this.initializePdfjs();
       const data = await fs.promises.readFile(filePath);
 
-      const loadingTask = pdfjs.getDocument({
+      const loadingTask = pdfjsLib.getDocument({
         data: data,
         useSystemFonts: true,
         disableFontFace: false,
@@ -192,7 +214,7 @@ export class PdfExtractorService {
    * Extracts native text content from PDF pages
    */
   private async extractNativeText(
-    pdfDocument: pdfjs.PDFDocumentProxy,
+    pdfDocument: any,
     options: { maxPages?: number } = {}
   ): Promise<Omit<PdfExtractionResult, "extractionMethod">> {
     const maxPages = Math.min(
@@ -243,7 +265,7 @@ export class PdfExtractorService {
    * Renders PDF pages to canvas and extracts text (for scanned PDFs)
    */
   private async extractRenderedText(
-    pdfDocument: pdfjs.PDFDocumentProxy,
+    pdfDocument: any,
     options: { maxPages?: number } = {}
   ): Promise<Omit<PdfExtractionResult, "extractionMethod">> {
     const maxPages = Math.min(options.maxPages || 5, pdfDocument.numPages); // Limit rendered pages

@@ -27,18 +27,35 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pdfExtractor = exports.PdfExtractorService = void 0;
-const pdfjs = __importStar(require("pdfjs-dist"));
 const canvas_1 = require("canvas");
 const errorHandling_1 = require("./utils/errorHandling");
 const ocrUtils_1 = require("./utils/ocrUtils");
 const logger_1 = __importDefault(require("../../utils/logger"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = require.resolve("pdfjs-dist/build/pdf.worker.js");
+// PDF.js will be imported dynamically to avoid ES module issues
+let pdfjs = null;
 class PdfExtractorService {
     constructor() {
         this.method = "pdf-extraction";
+    }
+    /**
+     * Initialize PDF.js dynamically to avoid ES module issues
+     */
+    async initializePdfjs() {
+        if (!pdfjs) {
+            try {
+                pdfjs = await Promise.resolve().then(() => __importStar(require("pdfjs-dist")));
+                // Configure PDF.js worker
+                pdfjs.GlobalWorkerOptions.workerSrc = require.resolve("pdfjs-dist/build/pdf.worker.js");
+                logger_1.default.debug("PDF.js initialized successfully");
+            }
+            catch (error) {
+                logger_1.default.error("Failed to initialize PDF.js:", error);
+                throw new errorHandling_1.EnhancedOcrError("Failed to initialize PDF.js library", this.method, errorHandling_1.OCR_ERROR_CODES.PROCESSING_FAILED, undefined, error instanceof Error ? error : new Error(String(error)));
+            }
+        }
+        return pdfjs;
     }
     /**
      * Extracts text from a PDF document
@@ -118,8 +135,9 @@ class PdfExtractorService {
      */
     async loadPdfDocument(filePath) {
         try {
+            const pdfjsLib = await this.initializePdfjs();
             const data = await fs_1.default.promises.readFile(filePath);
-            const loadingTask = pdfjs.getDocument({
+            const loadingTask = pdfjsLib.getDocument({
                 data: data,
                 useSystemFonts: true,
                 disableFontFace: false,
