@@ -38,7 +38,12 @@ export class SubscriptionModel {
   }
 
   static async findAll(
-    filters: { status?: string; min_price?: number; max_price?: number },
+    filters: {
+      status?: string;
+      min_price?: number;
+      max_price?: number;
+      q?: string;
+    },
     pagination: { limit: number; offset: number }
   ): Promise<{ data: SubscriptionWithPlan[]; total: number }> {
     let whereClause = "";

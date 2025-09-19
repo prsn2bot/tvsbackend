@@ -16,10 +16,11 @@ _a = AdminController;
 // GET /users - List all users
 AdminController.getUsers = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
     // Query parameters are validated by middleware
-    const { role, account_status, limit = 10, offset = 0 } = req.query;
+    const { role, account_status, q, limit = 10, offset = 0 } = req.query;
     const filters = {
         role: role,
         account_status: account_status,
+        q: q,
     };
     const pagination = {
         page: 1,
@@ -55,10 +56,11 @@ AdminController.updateUserRole = (0, errorHandler_middleware_1.asyncHandler)(asy
 });
 // GET /cases - List all cases
 AdminController.getCases = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
-    const { status, min_created_at, limit = 10, offset = 0 } = req.query;
+    const { status, min_created_at, q, limit = 10, offset = 0 } = req.query;
     const filters = {
         status: status,
         min_created_at: min_created_at,
+        q: q,
     };
     const pagination = {
         limit: Number(limit) || 10,
@@ -73,11 +75,12 @@ AdminController.getCases = (0, errorHandler_middleware_1.asyncHandler)(async (re
 });
 // GET /subscriptions - List all subscriptions
 AdminController.getSubscriptions = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
-    const { status, min_price, max_price, limit = 10, offset = 0, } = req.query;
+    const { status, min_price, max_price, q, limit = 10, offset = 0, } = req.query;
     const filters = {
         status: status,
         min_price: min_price ? Number(min_price) : undefined,
         max_price: max_price ? Number(max_price) : undefined,
+        q: q,
     };
     const pagination = {
         limit: Number(limit) || 10,
@@ -125,7 +128,13 @@ AdminController.deleteSubscription = (0, errorHandler_middleware_1.asyncHandler)
 });
 // GET /plans - List all plans
 AdminController.getPlans = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
-    const plans = await plan_service_1.PlanService.getAllPlans();
+    const { q, limit = 10, offset = 0 } = req.query;
+    const queryParams = {
+        q: q,
+        limit: Number(limit) || 10,
+        offset: Number(offset) || 0,
+    };
+    const plans = await plan_service_1.PlanService.getAllPlans(queryParams);
     res.json({
         success: true,
         message: "Plans retrieved successfully",
@@ -157,11 +166,12 @@ AdminController.deletePlan = (0, errorHandler_middleware_1.asyncHandler)(async (
 });
 // GET /audit-logs - List audit logs
 AdminController.getAuditLogs = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
-    const { user_id, min_created_at, max_created_at, limit = 10, offset = 0, } = req.query;
+    const { user_id, min_created_at, max_created_at, q, limit = 10, offset = 0, } = req.query;
     const filters = {
         user_id: user_id ? Number(user_id) : undefined,
         min_created_at: min_created_at,
         max_created_at: max_created_at,
+        q: q,
     };
     const pagination = {
         limit: Number(limit) || 10,

@@ -55,6 +55,7 @@ export const AdminUserQueryDto = BaseAdminQueryDto.extend({
   account_status: z
     .enum(["pending_verification", "active", "inactive", "suspended"])
     .optional(),
+  q: z.string().min(1, "Search query must not be empty").optional(),
 });
 
 // Admin Query Parameters DTO for Cases
@@ -70,6 +71,7 @@ export const AdminCaseQueryDto = BaseAdminQueryDto.extend({
       "archived",
     ])
     .optional(),
+  q: z.string().min(1, "Search query must not be empty").optional(),
 });
 
 // Admin Query Parameters DTO for Subscriptions
@@ -85,9 +87,20 @@ export const AdminSubscriptionQueryDto = BaseAdminQueryDto.extend({
     .transform((val) => parseFloat(val))
     .refine((val) => !isNaN(val) && val >= 0, "Invalid maximum price")
     .optional(),
+  q: z.string().min(1, "Search query must not be empty").optional(),
 });
 
-// Generic Admin Query DTO (for audit logs and other generic endpoints)
+// Admin Query Parameters DTO for Plans
+export const AdminPlanQueryDto = BaseAdminQueryDto.extend({
+  q: z.string().min(1, "Search query must not be empty").optional(),
+});
+
+// Admin Query Parameters DTO for Audit Logs
+export const AdminAuditLogQueryDto = BaseAdminQueryDto.extend({
+  q: z.string().min(1, "Search query must not be empty").optional(),
+});
+
+// Generic Admin Query DTO (for other generic endpoints)
 export const AdminQueryDto = BaseAdminQueryDto;
 
 // User ID Parameter DTO
@@ -123,6 +136,8 @@ export type AdminCaseQueryDtoType = z.infer<typeof AdminCaseQueryDto>;
 export type AdminSubscriptionQueryDtoType = z.infer<
   typeof AdminSubscriptionQueryDto
 >;
+export type AdminPlanQueryDtoType = z.infer<typeof AdminPlanQueryDto>;
+export type AdminAuditLogQueryDtoType = z.infer<typeof AdminAuditLogQueryDto>;
 export type UserParamsDtoType = z.infer<typeof UserParamsDto>;
 export type SubscriptionParamsDtoType = z.infer<typeof SubscriptionParamsDto>;
 export type PlanParamsDtoType = z.infer<typeof PlanParamsDto>;

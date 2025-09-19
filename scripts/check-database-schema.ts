@@ -1,5 +1,20 @@
 import { pool } from "../src/config/database";
 
+interface EnumRow {
+  enum_name: string;
+  enum_value: string;
+}
+
+interface ColumnRow {
+  table_name: string;
+  column_name: string;
+  data_type: string;
+  is_nullable: string;
+  column_default: string | null;
+  constraint_type: string | null;
+  check_clause: string | null;
+}
+
 async function checkDatabaseSchema() {
   try {
     console.log("🔍 Checking database schema...\n");
@@ -27,16 +42,19 @@ async function checkDatabaseSchema() {
     `);
 
     if (enumsResult.rows.length > 0) {
-      const enumsByType = enumsResult.rows.reduce((acc, row) => {
-        if (!acc[row.enum_name]) {
-          acc[row.enum_name] = [];
+      const enumsByType: Record<string, string[]> = {};
+
+      enumsResult.rows.forEach((row: EnumRow) => {
+        if (!enumsByType[row.enum_name]) {
+          enumsByType[row.enum_name] = [];
         }
-        acc[row.enum_name].push(row.enum_value);
-        return acc;
-      }, {} as Record<string, string[]>);
+        enumsByType[row.enum_name].push(row.enum_value);
+      });
 
       Object.entries(enumsByType).forEach(([enumName, values]) => {
-        console.log(`${enumName}: [${values.map((v) => `'${v}'`).join(", ")}]`);
+        console.log(
+          `${enumName}: [${values.map((v: string) => `'${v}'`).join(", ")}]`
+        );
       });
     } else {
       console.log("No enums found");
@@ -62,17 +80,18 @@ async function checkDatabaseSchema() {
       ORDER BY c.table_name, c.ordinal_position;
     `);
 
-    const tableColumns = columnsResult.rows.reduce((acc, row) => {
-      if (!acc[row.table_name]) {
-        acc[row.table_name] = [];
+    const tableColumns: Record<string, ColumnRow[]> = {};
+
+    columnsResult.rows.forEach((row: ColumnRow) => {
+      if (!tableColumns[row.table_name]) {
+        tableColumns[row.table_name] = [];
       }
-      acc[row.table_name].push(row);
-      return acc;
-    }, {} as Record<string, any[]>);
+      tableColumns[row.table_name].push(row);
+    });
 
     Object.entries(tableColumns).forEach(([tableName, columns]) => {
       console.log(`\n🗂️  ${tableName.toUpperCase()}:`);
-      columns.forEach((col) => {
+      columns.forEach((col: ColumnRow) => {
         let info = `  ${col.column_name}: ${col.data_type}`;
         if (col.is_nullable === "NO") info += " NOT NULL";
         if (col.column_default) info += ` DEFAULT ${col.column_default}`;

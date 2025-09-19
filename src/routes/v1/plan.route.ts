@@ -1,33 +1,60 @@
 import express from "express";
 import { authenticate, hasRole } from "../../middleware/auth.middleware";
 import rateLimitMiddleware from "../../middleware/rateLimitMiddleware";
+import {
+  validateQuery,
+  validateBody,
+  validateParams,
+} from "../../middleware/validation.middleware";
+import {
+  PlanQueryDto,
+  CreatePlanDto,
+  UpdatePlanDto,
+  PlanParamsDto,
+} from "../../dto/plan.dto";
 import { PlanService } from "../../services/plan.service";
 
 const router = express.Router();
 
-// GET / - List available plans
-router.get("/", rateLimitMiddleware(), async (req, res, next) => {
-  try {
-    const plans = await PlanService.getAllPlans();
-    res.json({ plans });
-  } catch (error) {
-    next(error);
+// GET / - List available plans with search
+router.get(
+  "/",
+  rateLimitMiddleware(),
+  validateQuery(PlanQueryDto, "plan"),
+  async (req, res, next) => {
+    try {
+      const queryParams = req.query as any;
+      const result = await PlanService.getAllPlans(queryParams);
+      res.json({
+        plans: result.data,
+        total: result.total,
+        page: queryParams.page || 1,
+        limit: queryParams.limit || 10,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 // GET /:id - Get a specific plan
-router.get("/:id", rateLimitMiddleware(), async (req, res, next) => {
-  try {
-    const id = parseInt(req.params.id);
-    const plan = await PlanService.getPlanById(id);
-    if (!plan) {
-      return res.status(404).json({ message: "Plan not found" });
+router.get(
+  "/:id",
+  rateLimitMiddleware(),
+  validateParams(PlanParamsDto, "plan"),
+  async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const plan = await PlanService.getPlanById(id);
+      if (!plan) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+      res.json({ plan });
+    } catch (error) {
+      next(error);
     }
-    res.json({ plan });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // POST / - Create a new plan
 router.post(
@@ -35,6 +62,7 @@ router.post(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
+  validateBody(CreatePlanDto, "plan"),
   async (req, res, next) => {
     try {
       const planData = req.body;
@@ -52,6 +80,8 @@ router.put(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
+  validateParams(PlanParamsDto, "plan"),
+  validateBody(UpdatePlanDto, "plan"),
   async (req, res, next) => {
     try {
       const id = parseInt(req.params.id);
@@ -73,6 +103,7 @@ router.delete(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
+  validateParams(PlanParamsDto, "plan"),
   async (req, res, next) => {
     try {
       const id = parseInt(req.params.id);

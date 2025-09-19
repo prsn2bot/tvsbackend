@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlanParamsDto = exports.SubscriptionParamsDto = exports.UserParamsDto = exports.AdminQueryDto = exports.AdminSubscriptionQueryDto = exports.AdminCaseQueryDto = exports.AdminUserQueryDto = exports.BaseAdminQueryDto = exports.UpdateUserRoleDto = exports.UpdateUserStatusDto = void 0;
+exports.PlanParamsDto = exports.SubscriptionParamsDto = exports.UserParamsDto = exports.AdminQueryDto = exports.AdminAuditLogQueryDto = exports.AdminPlanQueryDto = exports.AdminSubscriptionQueryDto = exports.AdminCaseQueryDto = exports.AdminUserQueryDto = exports.BaseAdminQueryDto = exports.UpdateUserRoleDto = exports.UpdateUserStatusDto = void 0;
 const zod_1 = require("zod");
 // Update User Status DTO
 exports.UpdateUserStatusDto = zod_1.z.object({
@@ -54,6 +54,7 @@ exports.AdminUserQueryDto = exports.BaseAdminQueryDto.extend({
     account_status: zod_1.z
         .enum(["pending_verification", "active", "inactive", "suspended"])
         .optional(),
+    q: zod_1.z.string().min(1, "Search query must not be empty").optional(),
 });
 // Admin Query Parameters DTO for Cases
 exports.AdminCaseQueryDto = exports.BaseAdminQueryDto.extend({
@@ -68,6 +69,7 @@ exports.AdminCaseQueryDto = exports.BaseAdminQueryDto.extend({
         "archived",
     ])
         .optional(),
+    q: zod_1.z.string().min(1, "Search query must not be empty").optional(),
 });
 // Admin Query Parameters DTO for Subscriptions
 exports.AdminSubscriptionQueryDto = exports.BaseAdminQueryDto.extend({
@@ -82,8 +84,17 @@ exports.AdminSubscriptionQueryDto = exports.BaseAdminQueryDto.extend({
         .transform((val) => parseFloat(val))
         .refine((val) => !isNaN(val) && val >= 0, "Invalid maximum price")
         .optional(),
+    q: zod_1.z.string().min(1, "Search query must not be empty").optional(),
 });
-// Generic Admin Query DTO (for audit logs and other generic endpoints)
+// Admin Query Parameters DTO for Plans
+exports.AdminPlanQueryDto = exports.BaseAdminQueryDto.extend({
+    q: zod_1.z.string().min(1, "Search query must not be empty").optional(),
+});
+// Admin Query Parameters DTO for Audit Logs
+exports.AdminAuditLogQueryDto = exports.BaseAdminQueryDto.extend({
+    q: zod_1.z.string().min(1, "Search query must not be empty").optional(),
+});
+// Generic Admin Query DTO (for other generic endpoints)
 exports.AdminQueryDto = exports.BaseAdminQueryDto;
 // User ID Parameter DTO
 exports.UserParamsDto = zod_1.z.object({

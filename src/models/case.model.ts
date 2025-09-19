@@ -30,7 +30,7 @@ export class CaseModel {
 
   static async findCasesByUser(
     userId: number,
-    filters: { status?: string; min_created_at?: string },
+    filters: { status?: string; min_created_at?: string; q?: string },
     pagination: { page: number; limit: number }
   ): Promise<{ data: Case[]; total: number }> {
     let whereClause = "WHERE officer_user_id = $1";
@@ -162,7 +162,7 @@ export class CaseModel {
   }
 
   static async findAll(
-    filters: { status?: string; min_created_at?: string },
+    filters: { status?: string; min_created_at?: string; q?: string },
     pagination: { limit: number; offset: number }
   ): Promise<{ data: Case[]; total: number }> {
     let whereClause = "";

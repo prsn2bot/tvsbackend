@@ -15,7 +15,7 @@ export class CaseService {
 
   static async getCases(
     userId: number,
-    filters: { status?: string; min_created_at?: string },
+    filters: { status?: string; min_created_at?: string; q?: string },
     pagination: { page: number; limit: number }
   ) {
     const cases = await CaseModel.findCasesByUser(userId, filters, pagination);
@@ -71,7 +71,7 @@ export class CaseService {
   }
 
   static async getCasesForAdmin(
-    filters: { status?: string; min_created_at?: string },
+    filters: { status?: string; min_created_at?: string; q?: string },
     pagination: { limit: number; offset: number }
   ) {
     const cases = await CaseModel.findAll(filters, pagination);

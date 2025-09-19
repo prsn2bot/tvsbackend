@@ -125,7 +125,7 @@ export class UserModel {
   }
 
   static async findAll(
-    filters: { role?: string; account_status?: string },
+    filters: { role?: string; account_status?: string; q?: string },
     pagination: { limit: number; offset: number }
   ): Promise<User[]> {
     let whereClause = "";
@@ -158,6 +158,7 @@ export class UserModel {
   static async countAll(filters: {
     role?: string;
     account_status?: string;
+    q?: string;
   }): Promise<number> {
     let whereClause = "";
     const values: any[] = [];

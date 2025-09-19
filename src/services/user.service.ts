@@ -20,7 +20,7 @@ export class UserService {
   }
 
   static async getAllUsers(
-    filters: { role?: string; account_status?: string },
+    filters: { role?: string; account_status?: string; q?: string },
     pagination: { page: number; limit: number }
   ): Promise<PaginatedResponse<User>> {
     const offset = (pagination.page - 1) * pagination.limit;

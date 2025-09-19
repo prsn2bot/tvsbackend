@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlanParamsDto = exports.UpdatePlanDto = exports.CreatePlanDto = void 0;
+exports.PlanParamsDto = exports.PlanQueryDto = exports.UpdatePlanDto = exports.CreatePlanDto = void 0;
 const zod_1 = require("zod");
 // Plan Features Schema
 const PlanFeaturesSchema = zod_1.z
@@ -44,6 +44,28 @@ exports.UpdatePlanDto = zod_1.z.object({
         .max(999999.99, "Price must be less than 999999.99")
         .optional(),
     features: PlanFeaturesSchema.optional(),
+});
+// Plan Query Parameters DTO
+exports.PlanQueryDto = zod_1.z.object({
+    page: zod_1.z
+        .string()
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => val > 0, "Page must be greater than 0")
+        .default("1")
+        .optional(),
+    limit: zod_1.z
+        .string()
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => val > 0 && val <= 100, "Limit must be between 1 and 100")
+        .default("10")
+        .optional(),
+    offset: zod_1.z
+        .string()
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => val >= 0, "Offset must be 0 or greater")
+        .default("0")
+        .optional(),
+    q: zod_1.z.string().min(1, "Search query must not be empty").optional(),
 });
 // Plan ID Parameter DTO
 exports.PlanParamsDto = zod_1.z.object({

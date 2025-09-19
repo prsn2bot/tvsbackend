@@ -2,8 +2,13 @@ import { PlanModel } from "../models/plan.model";
 import { Plan } from "../types/plan.types";
 
 export class PlanService {
-  static async getAllPlans(): Promise<Plan[]> {
-    return await PlanModel.findAll();
+  static async getAllPlans(queryParams?: {
+    q?: string;
+    page?: number;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ data: Plan[]; total: number }> {
+    return await PlanModel.findAll(queryParams);
   }
 
   static async getPlanById(id: number): Promise<Plan | null> {

@@ -46,6 +46,29 @@ export const UpdatePlanDto = z.object({
   features: PlanFeaturesSchema.optional(),
 });
 
+// Plan Query Parameters DTO
+export const PlanQueryDto = z.object({
+  page: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => val > 0, "Page must be greater than 0")
+    .default("1")
+    .optional(),
+  limit: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => val > 0 && val <= 100, "Limit must be between 1 and 100")
+    .default("10")
+    .optional(),
+  offset: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => val >= 0, "Offset must be 0 or greater")
+    .default("0")
+    .optional(),
+  q: z.string().min(1, "Search query must not be empty").optional(),
+});
+
 // Plan ID Parameter DTO
 export const PlanParamsDto = z.object({
   id: z
@@ -57,4 +80,5 @@ export const PlanParamsDto = z.object({
 // Export types
 export type CreatePlanDtoType = z.infer<typeof CreatePlanDto>;
 export type UpdatePlanDtoType = z.infer<typeof UpdatePlanDto>;
+export type PlanQueryDtoType = z.infer<typeof PlanQueryDto>;
 export type PlanParamsDtoType = z.infer<typeof PlanParamsDto>;

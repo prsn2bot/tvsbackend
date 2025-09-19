@@ -24,7 +24,12 @@ curl -X POST "${BASE_URL}/auth/register" \
 }'
 ```
 
-**Available Roles:** `officer`, `cvo`, `legal_board`, `admin`, `owner`
+**Password Requirements:**
+
+- Minimum 8 characters, maximum 128 characters
+- Must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%\*?&)
+
+**Available Roles:** `officer` (default), `cvo`, `legal_board`, `admin`, `owner`
 
 ### Login User
 
@@ -41,8 +46,18 @@ curl -X POST "${BASE_URL}/auth/login" \
 
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": 123,
+      "email": "officer@example.com",
+      "role": "officer",
+      "account_status": "active"
+    }
+  }
 }
 ```
 
@@ -55,6 +70,11 @@ curl -X POST "${BASE_URL}/auth/refresh-token" \
   "refreshToken": "'${REFRESH_TOKEN}'"
 }'
 ```
+
+**Token Expiration:**
+
+- Access Token: 1 hour
+- Refresh Token: 7 days
 
 ---
 
@@ -109,11 +129,15 @@ curl -X POST "${BASE_URL}/cases" \
 
 **Available Statuses:** `intake`, `ai_analysis`, `awaiting_officer_review`, `awaiting_cvo_review`, `awaiting_legal_review`, `finalized`, `archived`
 
-### List Cases with Filters
+### List Cases with Filters and Search
 
 ```bash
 # Basic listing
 curl -X GET "${BASE_URL}/cases?page=1&limit=10" \
+-H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+# Search by case title
+curl -X GET "${BASE_URL}/cases?q=corruption&page=1&limit=10" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # With status filter
@@ -121,11 +145,11 @@ curl -X GET "${BASE_URL}/cases?page=1&limit=10&status=intake" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
 # With date filter
-curl -X GET "${BASE_URL}/cases?page=1&limit=10&min_created_at=2024-01-01" \
+curl -X GET "${BASE_URL}/cases?page=1&limit=10&min_created_at=2024-01-01T00:00:00Z" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
-# Combined filters
-curl -X GET "${BASE_URL}/cases?page=1&limit=20&status=awaiting_officer_review&min_created_at=2024-01-01" \
+# Combined filters with search
+curl -X GET "${BASE_URL}/cases?q=investigation&status=awaiting_officer_review&min_created_at=2024-01-01T00:00:00Z&page=1&limit=20" \
 -H "Authorization: Bearer ${ACCESS_TOKEN}"
 ```
 
@@ -367,6 +391,8 @@ curl -X POST "${BASE_URL}/mail/send-otp" \
 }'
 ```
 
+**Valid Duration Formats:** `"10 minutes"`, `"30 seconds"`, `"5 minutes"`
+
 ### Verify OTP
 
 ```bash
@@ -375,10 +401,15 @@ curl -X POST "${BASE_URL}/mail/verify-otp" \
 -d '{
   "to": "user@example.com",
   "otpCode": "123456",
-  "is_verified": true,
+  "is_verified": false,
   "forgot_password": false
 }'
 ```
+
+**OTP Requirements:**
+
+- Must be exactly 6 digits
+- Only numeric characters allowed
 
 ### Send Welcome Email (Admin Only)
 
@@ -644,7 +675,7 @@ curl -X GET "${BASE_URL}/admin/audit-logs?user_id=123&min_created_at=2024-01-01&
 
 ---
 
-## 📝 Common Query Parameters
+## 📋 Common Query Parameters
 
 ### Pagination
 
@@ -773,3 +804,30 @@ REDIS_URL=redis://localhost:6379
    ```bash
    GET /admin/users → PUT /admin/users/{id}/status → GET /admin/audit-logs
    ```
+   <path>curl_commands_for_api_routes.md</path>
+   <content>
+   <<<<<<< SEARCH
+
+## Base Configuration
+
+```bash
+BASE_URL="http://localhost:3000/api/v1"
+ACCESS_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+REFRESH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+=======
+
+## Base Configuration
+
+```bash
+BASE_URL="http://localhost:3000/api/v1"
+ACCESS_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+REFRESH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Token Expiration:**
+
+- Access Token: Expires in 1 hour
+- Refresh Token: Expires in 7 days
+- OTP: Expires in 15 minutes (default)

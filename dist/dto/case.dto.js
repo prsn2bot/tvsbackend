@@ -76,6 +76,7 @@ exports.CaseQueryDto = zod_1.z.object({
         .string()
         .datetime("Invalid date format. Use ISO 8601 format")
         .optional(),
+    q: zod_1.z.string().min(1, "Search query must not be empty").optional(),
 });
 // Case ID Parameter DTO
 exports.CaseParamsDto = zod_1.z.object({

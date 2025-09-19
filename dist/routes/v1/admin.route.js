@@ -29,12 +29,12 @@ router.put("/subscriptions/:id", auth_middleware_1.authenticate, (0, auth_middle
 // DELETE /subscriptions/:id - Delete a subscription
 router.delete("/subscriptions/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateParams)(admin_dto_1.SubscriptionParamsDto, "subscription"), admin_controller_1.AdminController.deleteSubscription);
 // GET /plans - List all plans
-router.get("/plans", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), admin_controller_1.AdminController.getPlans);
+router.get("/plans", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateQuery)(admin_dto_1.AdminPlanQueryDto, "plan"), admin_controller_1.AdminController.getPlans);
 // PUT /plans/:id - Update a plan
 router.put("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateAll)(plan_dto_1.UpdatePlanDto, undefined, admin_dto_1.PlanParamsDto, "plan"), admin_controller_1.AdminController.updatePlan);
 // DELETE /plans/:id - Delete a plan
 router.delete("/plans/:id", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateParams)(admin_dto_1.PlanParamsDto, "plan"), admin_controller_1.AdminController.deletePlan);
 // GET /audit-logs - List audit logs
-router.get("/audit-logs", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateQuery)(admin_dto_1.AdminQueryDto), admin_controller_1.AdminController.getAuditLogs);
+router.get("/audit-logs", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateQuery)(admin_dto_1.AdminAuditLogQueryDto, "audit-log"), admin_controller_1.AdminController.getAuditLogs);
 exports.default = router;
 //# sourceMappingURL=admin.route.js.map

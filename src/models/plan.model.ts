@@ -2,7 +2,53 @@ import { pool } from "../config/database";
 import { Plan } from "../types/plan.types";
 
 export class PlanModel {
-  static async findAll(): Promise<Plan[]> {
+  static async findAll(filters?: {
+    q?: string;
+    page?: number;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ data: Plan[]; total: number }> {
+    let whereClause = "";
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    // Add search functionality
+    if (filters?.q) {
+      whereClause = `WHERE name ILIKE $${paramIndex}`;
+      values.push(`%${filters.q}%`);
+      paramIndex++;
+    }
+
+    // Count total records
+    const countQuery = `SELECT COUNT(*) as count FROM plans ${whereClause}`;
+    const countResult = await pool.query(countQuery, values);
+    const total = parseInt(countResult.rows[0].count, 10);
+
+    // Get paginated data
+    const limit = filters?.limit || 10;
+    const offset = filters?.offset || 0;
+
+    const dataQuery = `
+      SELECT * FROM plans 
+      ${whereClause}
+      ORDER BY id 
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    values.push(limit, offset);
+
+    const dataResult = await pool.query(dataQuery, values);
+    const data = dataResult.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      price_monthly: row.price_monthly,
+      features: row.features,
+    }));
+
+    return { data, total };
+  }
+
+  // Keep the old method for backward compatibility
+  static async findAllSimple(): Promise<Plan[]> {
     const query = `SELECT * FROM plans ORDER BY id`;
     const result = await pool.query(query);
     return result.rows.map((row) => ({

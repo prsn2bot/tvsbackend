@@ -15,6 +15,8 @@ import {
   AdminUserQueryDto,
   AdminCaseQueryDto,
   AdminSubscriptionQueryDto,
+  AdminPlanQueryDto,
+  AdminAuditLogQueryDto,
   UserParamsDto,
   SubscriptionParamsDto,
   PlanParamsDto,
@@ -118,6 +120,7 @@ router.get(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
+  validateQuery(AdminPlanQueryDto, "plan"),
   AdminController.getPlans
 );
 
@@ -147,7 +150,7 @@ router.get(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateQuery(AdminQueryDto),
+  validateQuery(AdminAuditLogQueryDto, "audit-log"),
   AdminController.getAuditLogs
 );
 

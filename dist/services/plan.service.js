@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlanService = void 0;
 const plan_model_1 = require("../models/plan.model");
 class PlanService {
-    static async getAllPlans() {
-        return await plan_model_1.PlanModel.findAll();
+    static async getAllPlans(queryParams) {
+        return await plan_model_1.PlanModel.findAll(queryParams);
     }
     static async getPlanById(id) {
         return await plan_model_1.PlanModel.findById(id);

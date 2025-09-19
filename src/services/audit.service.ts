@@ -7,6 +7,7 @@ export class AuditService {
       user_id?: number;
       min_created_at?: string;
       max_created_at?: string;
+      q?: string;
     },
     pagination: { limit: number; offset: number }
   ): Promise<{ data: AuditLog[]; total: number }> {

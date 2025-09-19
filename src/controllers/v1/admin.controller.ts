@@ -12,11 +12,12 @@ export class AdminController {
   static getUsers = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       // Query parameters are validated by middleware
-      const { role, account_status, limit = 10, offset = 0 } = req.query;
+      const { role, account_status, q, limit = 10, offset = 0 } = req.query;
 
       const filters = {
         role: role as string | undefined,
         account_status: account_status as string | undefined,
+        q: q as string | undefined,
       };
       const pagination = {
         page: 1,
@@ -67,11 +68,12 @@ export class AdminController {
   // GET /cases - List all cases
   static getCases = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { status, min_created_at, limit = 10, offset = 0 } = req.query;
+      const { status, min_created_at, q, limit = 10, offset = 0 } = req.query;
 
       const filters = {
         status: status as string | undefined,
         min_created_at: min_created_at as string | undefined,
+        q: q as string | undefined,
       };
       const pagination = {
         limit: Number(limit) || 10,
@@ -95,6 +97,7 @@ export class AdminController {
         status,
         min_price,
         max_price,
+        q,
         limit = 10,
         offset = 0,
       } = req.query;
@@ -103,6 +106,7 @@ export class AdminController {
         status: status as string | undefined,
         min_price: min_price ? Number(min_price) : undefined,
         max_price: max_price ? Number(max_price) : undefined,
+        q: q as string | undefined,
       };
       const pagination = {
         limit: Number(limit) || 10,
@@ -178,7 +182,15 @@ export class AdminController {
   // GET /plans - List all plans
   static getPlans = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const plans = await PlanService.getAllPlans();
+      const { q, limit = 10, offset = 0 } = req.query;
+
+      const queryParams = {
+        q: q as string | undefined,
+        limit: Number(limit) || 10,
+        offset: Number(offset) || 0,
+      };
+
+      const plans = await PlanService.getAllPlans(queryParams);
 
       res.json({
         success: true,
@@ -228,6 +240,7 @@ export class AdminController {
         user_id,
         min_created_at,
         max_created_at,
+        q,
         limit = 10,
         offset = 0,
       } = req.query;
@@ -236,6 +249,7 @@ export class AdminController {
         user_id: user_id ? Number(user_id) : undefined,
         min_created_at: min_created_at as string | undefined,
         max_created_at: max_created_at as string | undefined,
+        q: q as string | undefined,
       };
       const pagination = {
         limit: Number(limit) || 10,

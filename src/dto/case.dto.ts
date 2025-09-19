@@ -77,6 +77,7 @@ export const CaseQueryDto = z.object({
     .string()
     .datetime("Invalid date format. Use ISO 8601 format")
     .optional(),
+  q: z.string().min(1, "Search query must not be empty").optional(),
 });
 
 // Case ID Parameter DTO
