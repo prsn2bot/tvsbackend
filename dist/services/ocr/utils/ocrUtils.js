@@ -134,22 +134,6 @@ exports.DEFAULT_OCR_METHODS_CONFIG = {
         reliability: 0.8,
         qualityScore: 0.75,
     },
-    "cloudinary-fallback": {
-        supportedFormats: [
-            "pdf",
-            "jpg",
-            "jpeg",
-            "png",
-            "tiff",
-            "tif",
-            "bmp",
-            "webp",
-        ],
-        maxFileSize: 100 * 1024 * 1024,
-        averageProcessingTime: 5000,
-        reliability: 0.85,
-        qualityScore: 0.8,
-    },
 };
 /**
  * Determines the best OCR method for a given document type and file size

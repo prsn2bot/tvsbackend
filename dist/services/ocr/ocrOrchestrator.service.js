@@ -36,7 +36,6 @@ class OcrOrchestrator {
         this.defaultOptions = {
             enablePdfExtraction: config.pdf_extraction_enabled,
             enableTesseractOcr: config.tesseract_enabled,
-            enableCloudinaryFallback: config.cloudinary_fallback_enabled,
             timeout: config.default_timeout,
             retryAttempts: config.max_retry_attempts,
         };
@@ -106,23 +105,18 @@ class OcrOrchestrator {
         if (options.enableTesseractOcr) {
             chain.push("tesseract-ocr");
         }
-        if (options.enableCloudinaryFallback) {
-            chain.push("cloudinary-fallback");
-        }
+        // Cloudinary fallback removed - we only use PDF extraction and Tesseract OCR
         return chain;
     }
     async executeOcrMethod(method, documentUrl, options) {
         const { pdfExtractor } = await Promise.resolve().then(() => __importStar(require("./pdfExtractor.service")));
         const { tesseractOcr } = await Promise.resolve().then(() => __importStar(require("./tesseractOcr.service")));
-        const { getOcrTextFromCloudinary } = await Promise.resolve().then(() => __importStar(require("../cloudinary.service")));
         const { pdfToImageConverter } = await Promise.resolve().then(() => __importStar(require("./pdfToImageConverter.service")));
         switch (method) {
             case "pdf-extraction":
                 return await this.executePdfExtraction(documentUrl, options, pdfExtractor, pdfToImageConverter, tesseractOcr);
             case "tesseract-ocr":
                 return await this.executeTesseractOcr(documentUrl, options, tesseractOcr);
-            case "cloudinary-fallback":
-                return await this.executeCloudinaryFallback(documentUrl, getOcrTextFromCloudinary);
             default:
                 throw new ocr_types_1.OcrError(`Unknown OCR method: ${method}`, method, undefined, false);
         }
@@ -200,44 +194,6 @@ class OcrOrchestrator {
         catch (error) {
             throw new ocr_types_1.OcrError(`Tesseract OCR failed: ${error instanceof Error ? error.message : "Unknown error"}`, "tesseract-ocr", error instanceof Error ? error : undefined);
         }
-    }
-    async executeCloudinaryFallback(documentUrl, getOcrTextFromCloudinary) {
-        try {
-            // Extract public ID from Cloudinary URL or use the URL directly
-            const publicId = this.extractCloudinaryPublicId(documentUrl);
-            const text = await getOcrTextFromCloudinary(publicId);
-            return {
-                text: text,
-                confidence: 0.8,
-                metadata: {
-                    processingSteps: ["cloudinary-ocr-service"],
-                },
-            };
-        }
-        catch (error) {
-            throw new ocr_types_1.OcrError(`Cloudinary OCR failed: ${error instanceof Error ? error.message : "Unknown error"}`, "cloudinary-fallback", error instanceof Error ? error : undefined);
-        }
-    }
-    extractCloudinaryPublicId(documentUrl) {
-        // If it's already a public ID, return as is
-        if (!documentUrl.includes("/") && !documentUrl.includes("http")) {
-            return documentUrl;
-        }
-        // Extract public ID from Cloudinary URL
-        const urlParts = documentUrl.split("/");
-        const uploadIndex = urlParts.findIndex((part) => part === "upload");
-        if (uploadIndex !== -1 && uploadIndex < urlParts.length - 1) {
-            // Skip version if present (starts with 'v' followed by numbers)
-            let publicIdIndex = uploadIndex + 1;
-            if (urlParts[publicIdIndex].match(/^v\d+$/)) {
-                publicIdIndex++;
-            }
-            // Join remaining parts and remove file extension
-            const publicIdWithExt = urlParts.slice(publicIdIndex).join("/");
-            return publicIdWithExt.replace(/\.[^/.]+$/, ""); // Remove extension
-        }
-        // Fallback: use the URL as is
-        return documentUrl;
     }
     /**
      * Processes a document with performance monitoring and quality assessment
@@ -317,9 +273,6 @@ class OcrOrchestrator {
         }
         if (config.tesseract_enabled) {
             availableMethods.push("tesseract-ocr");
-        }
-        if (config.cloudinary_fallback_enabled) {
-            availableMethods.push("cloudinary-fallback");
         }
         let systemHealth = "healthy";
         if (availableMethods.length === 0) {

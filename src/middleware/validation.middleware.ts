@@ -2,11 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import { z, ZodError } from "zod";
 
 // Validation middleware factory
-export const validate = (schema: {
-  body?: z.ZodSchema;
-  query?: z.ZodSchema;
-  params?: z.ZodSchema;
-}) => {
+export const validate = (
+  schema: {
+    body?: z.ZodSchema;
+    query?: z.ZodSchema;
+    params?: z.ZodSchema;
+  },
+  entityType?: string
+) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       // Validate request body
@@ -31,11 +34,18 @@ export const validate = (schema: {
           field: err.path.join("."),
           message: err.message,
           code: err.code,
+          ...(entityType && { entity: entityType }),
         }));
+
+        const entityMessage = entityType
+          ? `${
+              entityType.charAt(0).toUpperCase() + entityType.slice(1)
+            } validation failed`
+          : "Validation failed";
 
         return res.status(400).json({
           success: false,
-          message: "Validation failed",
+          message: entityMessage,
           errors: validationErrors,
         });
       }
@@ -50,18 +60,23 @@ export const validate = (schema: {
 };
 
 // Specific validation helpers
-export const validateBody = (schema: z.ZodSchema) => validate({ body: schema });
-export const validateQuery = (schema: z.ZodSchema) =>
-  validate({ query: schema });
-export const validateParams = (schema: z.ZodSchema) =>
-  validate({ params: schema });
+export const validateBody = (schema: z.ZodSchema, entityType?: string) =>
+  validate({ body: schema }, entityType);
+export const validateQuery = (schema: z.ZodSchema, entityType?: string) =>
+  validate({ query: schema }, entityType);
+export const validateParams = (schema: z.ZodSchema, entityType?: string) =>
+  validate({ params: schema }, entityType);
 export const validateAll = (
   bodySchema: z.ZodSchema,
   querySchema?: z.ZodSchema,
-  paramsSchema?: z.ZodSchema
+  paramsSchema?: z.ZodSchema,
+  entityType?: string
 ) =>
-  validate({
-    body: bodySchema,
-    query: querySchema,
-    params: paramsSchema,
-  });
+  validate(
+    {
+      body: bodySchema,
+      query: querySchema,
+      params: paramsSchema,
+    },
+    entityType
+  );

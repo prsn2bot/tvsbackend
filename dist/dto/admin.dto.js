@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlanParamsDto = exports.SubscriptionParamsDto = exports.UserParamsDto = exports.AdminQueryDto = exports.UpdateUserRoleDto = exports.UpdateUserStatusDto = void 0;
+exports.PlanParamsDto = exports.SubscriptionParamsDto = exports.UserParamsDto = exports.AdminQueryDto = exports.AdminSubscriptionQueryDto = exports.AdminCaseQueryDto = exports.AdminUserQueryDto = exports.BaseAdminQueryDto = exports.UpdateUserRoleDto = exports.UpdateUserStatusDto = void 0;
 const zod_1 = require("zod");
 // Update User Status DTO
 exports.UpdateUserStatusDto = zod_1.z.object({
@@ -14,8 +14,8 @@ exports.UpdateUserRoleDto = zod_1.z.object({
         .enum(["officer", "cvo", "legal_board", "admin", "owner"])
         .refine((val) => val !== undefined, "Role is required"),
 });
-// Admin Query Parameters DTO
-exports.AdminQueryDto = zod_1.z.object({
+// Base Admin Query Parameters DTO
+exports.BaseAdminQueryDto = zod_1.z.object({
     page: zod_1.z
         .string()
         .transform((val) => parseInt(val, 10))
@@ -34,21 +34,6 @@ exports.AdminQueryDto = zod_1.z.object({
         .refine((val) => val >= 0, "Offset must be 0 or greater")
         .default("0")
         .optional(),
-    role: zod_1.z.enum(["officer", "cvo", "legal_board", "admin", "owner"]).optional(),
-    account_status: zod_1.z
-        .enum(["pending_verification", "active", "inactive", "suspended"])
-        .optional(),
-    status: zod_1.z
-        .enum([
-        "intake",
-        "ai_analysis",
-        "awaiting_officer_review",
-        "awaiting_cvo_review",
-        "awaiting_legal_review",
-        "finalized",
-        "archived",
-    ])
-        .optional(),
     min_created_at: zod_1.z
         .string()
         .datetime("Invalid date format. Use ISO 8601 format")
@@ -62,6 +47,31 @@ exports.AdminQueryDto = zod_1.z.object({
         .transform((val) => parseInt(val, 10))
         .refine((val) => !isNaN(val) && val > 0, "Invalid user ID")
         .optional(),
+});
+// Admin Query Parameters DTO for Users
+exports.AdminUserQueryDto = exports.BaseAdminQueryDto.extend({
+    role: zod_1.z.enum(["officer", "cvo", "legal_board", "admin", "owner"]).optional(),
+    account_status: zod_1.z
+        .enum(["pending_verification", "active", "inactive", "suspended"])
+        .optional(),
+});
+// Admin Query Parameters DTO for Cases
+exports.AdminCaseQueryDto = exports.BaseAdminQueryDto.extend({
+    status: zod_1.z
+        .enum([
+        "intake",
+        "ai_analysis",
+        "awaiting_officer_review",
+        "awaiting_cvo_review",
+        "awaiting_legal_review",
+        "finalized",
+        "archived",
+    ])
+        .optional(),
+});
+// Admin Query Parameters DTO for Subscriptions
+exports.AdminSubscriptionQueryDto = exports.BaseAdminQueryDto.extend({
+    status: zod_1.z.enum(["active", "cancelled", "past_due", "trialing"]).optional(),
     min_price: zod_1.z
         .string()
         .transform((val) => parseFloat(val))
@@ -73,6 +83,8 @@ exports.AdminQueryDto = zod_1.z.object({
         .refine((val) => !isNaN(val) && val >= 0, "Invalid maximum price")
         .optional(),
 });
+// Generic Admin Query DTO (for audit logs and other generic endpoints)
+exports.AdminQueryDto = exports.BaseAdminQueryDto;
 // User ID Parameter DTO
 exports.UserParamsDto = zod_1.z.object({
     userId: zod_1.z

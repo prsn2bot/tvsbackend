@@ -10,6 +10,9 @@ import { sanitizeExtractedText, assessTextQuality } from "./utils/ocrUtils";
 import logger from "../../utils/logger";
 import fs from "fs";
 import path from "path";
+import https from "https";
+import http from "http";
+import os from "os";
 
 // PDF.js will be imported dynamically to avoid ES module issues
 let pdfjs: any = null;
@@ -47,7 +50,7 @@ export class PdfExtractorService {
    * Extracts text from a PDF document
    */
   async extractText(
-    filePath: string,
+    filePathOrUrl: string,
     options: {
       maxPages?: number;
       qualityThreshold?: number;
@@ -58,68 +61,163 @@ export class PdfExtractorService {
 
     return withErrorHandling(
       async () => {
-        logger.info(`Starting PDF text extraction for: ${filePath}`);
+        logger.info(`Starting PDF text extraction for: ${filePathOrUrl}`);
 
-        // Validate file exists and is accessible
-        await this.validateFile(filePath);
-
-        // Load PDF document
-        const pdfDocument = await this.loadPdfDocument(filePath);
+        // Handle both local files and URLs
+        const filePath = await this.resolveFilePath(filePathOrUrl);
+        let tempFile: string | null = null;
 
         try {
-          // First attempt: Extract native text
-          const nativeTextResult = await this.extractNativeText(
-            pdfDocument,
-            options
-          );
-
-          // Check if native text extraction was successful
-          const quality = assessTextQuality(nativeTextResult.text);
-          const hasGoodQuality =
-            quality.estimatedAccuracy >= (options.qualityThreshold || 0.5);
-
-          if (nativeTextResult.text.length > 10 && hasGoodQuality) {
-            logger.info(
-              `PDF native text extraction successful: ${nativeTextResult.text.length} characters`
-            );
-            return {
-              ...nativeTextResult,
-              extractionMethod: "native-text",
-            };
+          // If it's a URL, download it first
+          if (this.isUrl(filePathOrUrl)) {
+            tempFile = await this.downloadFile(filePathOrUrl);
+            logger.info(`Downloaded file from URL to: ${tempFile}`);
           }
 
-          // Fallback: Render pages and extract text if enabled
-          if (
-            options.enableFallbackRendering &&
-            nativeTextResult.text.length < 50
-          ) {
-            logger.info(
-              "Native text extraction yielded minimal results, attempting rendered text extraction"
-            );
-            const renderedTextResult = await this.extractRenderedText(
+          const actualFilePath = tempFile || filePath;
+
+          // Validate file exists and is accessible
+          await this.validateFile(actualFilePath);
+
+          // Load PDF document
+          const pdfDocument = await this.loadPdfDocument(actualFilePath);
+
+          try {
+            // First attempt: Extract native text
+            const nativeTextResult = await this.extractNativeText(
               pdfDocument,
               options
             );
 
-            return {
-              ...renderedTextResult,
-              extractionMethod: "rendered-text",
-            };
-          }
+            // Check if native text extraction was successful
+            const quality = assessTextQuality(nativeTextResult.text);
+            const hasGoodQuality =
+              quality.estimatedAccuracy >= (options.qualityThreshold || 0.5);
 
-          // Return native text even if quality is low
-          return {
-            ...nativeTextResult,
-            extractionMethod: "native-text",
-          };
+            if (nativeTextResult.text.length > 10 && hasGoodQuality) {
+              logger.info(
+                `PDF native text extraction successful: ${nativeTextResult.text.length} characters`
+              );
+              return {
+                ...nativeTextResult,
+                extractionMethod: "native-text",
+              };
+            }
+
+            // Fallback: Render pages and extract text if enabled
+            if (
+              options.enableFallbackRendering &&
+              nativeTextResult.text.length < 50
+            ) {
+              logger.info(
+                "Native text extraction yielded minimal results, attempting rendered text extraction"
+              );
+              const renderedTextResult = await this.extractRenderedText(
+                pdfDocument,
+                options
+              );
+
+              return {
+                ...renderedTextResult,
+                extractionMethod: "rendered-text",
+              };
+            }
+
+            // Return native text even if quality is low
+            return {
+              ...nativeTextResult,
+              extractionMethod: "native-text",
+            };
+          } finally {
+            // Clean up PDF document
+            await pdfDocument.destroy();
+          }
         } finally {
-          // Clean up PDF document
-          await pdfDocument.destroy();
+          // Clean up temporary file if it was downloaded
+          if (tempFile) {
+            try {
+              await fs.promises.unlink(tempFile);
+              logger.debug(`Cleaned up temporary file: ${tempFile}`);
+            } catch (cleanupError) {
+              logger.warn(
+                `Failed to clean up temporary file: ${tempFile}`,
+                cleanupError
+              );
+            }
+          }
         }
       },
       this.method,
-      { filePath, processingTime: Date.now() - startTime }
+      { filePath: filePathOrUrl, processingTime: Date.now() - startTime }
     );
+  }
+
+  /**
+   * Checks if the input is a URL
+   */
+  private isUrl(input: string): boolean {
+    return input.startsWith("http://") || input.startsWith("https://");
+  }
+
+  /**
+   * Resolves file path - returns as-is for local files, or prepares for URL download
+   */
+  private async resolveFilePath(input: string): Promise<string> {
+    if (this.isUrl(input)) {
+      return input; // Will be handled by downloadFile
+    }
+    return input;
+  }
+
+  /**
+   * Downloads a file from URL to a temporary location
+   */
+  private async downloadFile(url: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const tempDir = os.tmpdir();
+      const tempFileName = `pdf_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}.pdf`;
+      const tempFilePath = path.join(tempDir, tempFileName);
+
+      const file = fs.createWriteStream(tempFilePath);
+      const client = url.startsWith("https://") ? https : http;
+
+      logger.info(`Downloading file from URL: ${url}`);
+
+      const request = client.get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(
+            new Error(`Failed to download file: HTTP ${response.statusCode}`)
+          );
+          return;
+        }
+
+        response.pipe(file);
+
+        file.on("finish", () => {
+          file.close();
+          logger.info(`File downloaded successfully to: ${tempFilePath}`);
+          resolve(tempFilePath);
+        });
+
+        file.on("error", (error) => {
+          fs.unlink(tempFilePath, () => {}); // Clean up on error
+          reject(error);
+        });
+      });
+
+      request.on("error", (error) => {
+        fs.unlink(tempFilePath, () => {}); // Clean up on error
+        reject(error);
+      });
+
+      request.setTimeout(30000, () => {
+        request.destroy();
+        fs.unlink(tempFilePath, () => {}); // Clean up on timeout
+        reject(new Error("Download timeout"));
+      });
+    });
   }
 
   /**

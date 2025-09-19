@@ -12,6 +12,9 @@ import {
   UpdateUserStatusDto,
   UpdateUserRoleDto,
   AdminQueryDto,
+  AdminUserQueryDto,
+  AdminCaseQueryDto,
+  AdminSubscriptionQueryDto,
   UserParamsDto,
   SubscriptionParamsDto,
   PlanParamsDto,
@@ -30,7 +33,7 @@ router.get(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateQuery(AdminQueryDto),
+  validateQuery(AdminUserQueryDto, "user"),
   AdminController.getUsers
 );
 
@@ -40,7 +43,7 @@ router.put(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateAll(UpdateUserStatusDto, undefined, UserParamsDto),
+  validateAll(UpdateUserStatusDto, undefined, UserParamsDto, "user"),
   AdminController.updateUserStatus
 );
 
@@ -50,7 +53,7 @@ router.put(
   authenticate,
   hasRole(["owner"]),
   rateLimitMiddleware(),
-  validateAll(UpdateUserRoleDto, undefined, UserParamsDto),
+  validateAll(UpdateUserRoleDto, undefined, UserParamsDto, "user"),
   AdminController.updateUserRole
 );
 
@@ -60,7 +63,7 @@ router.get(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateQuery(AdminQueryDto),
+  validateQuery(AdminCaseQueryDto, "case"),
   AdminController.getCases
 );
 
@@ -70,7 +73,7 @@ router.get(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateQuery(AdminQueryDto),
+  validateQuery(AdminSubscriptionQueryDto, "subscription"),
   AdminController.getSubscriptions
 );
 
@@ -80,7 +83,7 @@ router.post(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateBody(CreateSubscriptionDto),
+  validateBody(CreateSubscriptionDto, "subscription"),
   AdminController.createSubscription
 );
 
@@ -90,7 +93,12 @@ router.put(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateAll(UpdateSubscriptionDto, undefined, SubscriptionParamsDto),
+  validateAll(
+    UpdateSubscriptionDto,
+    undefined,
+    SubscriptionParamsDto,
+    "subscription"
+  ),
   AdminController.updateSubscription
 );
 
@@ -100,7 +108,7 @@ router.delete(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateParams(SubscriptionParamsDto),
+  validateParams(SubscriptionParamsDto, "subscription"),
   AdminController.deleteSubscription
 );
 
@@ -119,7 +127,7 @@ router.put(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateAll(UpdatePlanDto, undefined, PlanParamsDto),
+  validateAll(UpdatePlanDto, undefined, PlanParamsDto, "plan"),
   AdminController.updatePlan
 );
 
@@ -129,7 +137,7 @@ router.delete(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  validateParams(PlanParamsDto),
+  validateParams(PlanParamsDto, "plan"),
   AdminController.deletePlan
 );
 

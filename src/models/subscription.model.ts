@@ -103,7 +103,7 @@ export class SubscriptionModel {
   }
 
   static async create(subscriptionData: {
-    user_id: string;
+    user_id: number;
     plan_id: number;
     payment_provider_subscription_id?: string;
     status: string;

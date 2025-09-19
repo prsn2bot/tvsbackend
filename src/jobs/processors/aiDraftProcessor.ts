@@ -43,13 +43,12 @@ const aiDraftProcessor = async (job: Job<AiProcessingJobData>) => {
     let retryCount = 0;
 
     try {
-      // Use the new OCR orchestrator with fallback capabilities
+      // Use the new OCR orchestrator with PDF extraction and Tesseract OCR only
       const ocrResult = await ocrOrchestrator.extractText(
-        document.cloudinary_public_id,
+        document.secure_url, // Use the actual Cloudinary URL instead of public ID
         {
           enablePdfExtraction: true,
           enableTesseractOcr: true,
-          enableCloudinaryFallback: true,
           timeout: 60000, // 1 minute timeout
           retryAttempts: 2,
         }

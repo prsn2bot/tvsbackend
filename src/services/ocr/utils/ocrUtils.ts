@@ -163,22 +163,6 @@ export const DEFAULT_OCR_METHODS_CONFIG: OcrMethodsConfig = {
     reliability: 0.8,
     qualityScore: 0.75,
   },
-  "cloudinary-fallback": {
-    supportedFormats: [
-      "pdf",
-      "jpg",
-      "jpeg",
-      "png",
-      "tiff",
-      "tif",
-      "bmp",
-      "webp",
-    ],
-    maxFileSize: 100 * 1024 * 1024, // 100MB
-    averageProcessingTime: 5000, // 5 seconds
-    reliability: 0.85,
-    qualityScore: 0.8,
-  },
 };
 
 /**

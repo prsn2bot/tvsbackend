@@ -6,7 +6,6 @@ const zod_1 = require("zod");
 exports.OcrConfigurationSchema = zod_1.z.object({
     pdf_extraction_enabled: zod_1.z.boolean(),
     tesseract_enabled: zod_1.z.boolean(),
-    cloudinary_fallback_enabled: zod_1.z.boolean(),
     default_timeout: zod_1.z.number().min(1000).max(300000),
     max_retry_attempts: zod_1.z.number().min(0).max(10),
     tesseract_language: zod_1.z.string().min(2).max(10),
@@ -20,7 +19,6 @@ exports.OcrConfigurationSchema = zod_1.z.object({
 exports.OcrOptionsSchema = zod_1.z.object({
     enablePdfExtraction: zod_1.z.boolean(),
     enableTesseractOcr: zod_1.z.boolean(),
-    enableCloudinaryFallback: zod_1.z.boolean(),
     timeout: zod_1.z.number().min(1000).max(300000),
     retryAttempts: zod_1.z.number().min(0).max(10),
 });
@@ -42,7 +40,7 @@ exports.DocumentOcrMetadataSchema = zod_1.z.object({
 // OCR Result validation schema
 exports.OcrResultSchema = zod_1.z.object({
     text: zod_1.z.string(),
-    method: zod_1.z.enum(["pdf-extraction", "tesseract-ocr", "cloudinary-fallback"]),
+    method: zod_1.z.enum(["pdf-extraction", "tesseract-ocr"]),
     confidence: zod_1.z.number().min(0).max(1).optional(),
     processingTime: zod_1.z.number().min(0),
     metadata: zod_1.z
@@ -69,11 +67,7 @@ exports.TesseractResultSchema = zod_1.z.object({
 // Document type validation
 exports.DocumentTypeSchema = zod_1.z.enum(["pdf", "image", "unknown"]);
 // OCR Method validation
-exports.OcrMethodSchema = zod_1.z.enum([
-    "pdf-extraction",
-    "tesseract-ocr",
-    "cloudinary-fallback",
-]);
+exports.OcrMethodSchema = zod_1.z.enum(["pdf-extraction", "tesseract-ocr"]);
 // File extension validation
 exports.SupportedFileExtensionSchema = zod_1.z.enum([
     "pdf",

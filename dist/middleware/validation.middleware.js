@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateAll = exports.validateParams = exports.validateQuery = exports.validateBody = exports.validate = void 0;
 const zod_1 = require("zod");
 // Validation middleware factory
-const validate = (schema) => {
+const validate = (schema, entityType) => {
     return (req, res, next) => {
         try {
             // Validate request body
@@ -26,10 +26,14 @@ const validate = (schema) => {
                     field: err.path.join("."),
                     message: err.message,
                     code: err.code,
+                    ...(entityType && { entity: entityType }),
                 }));
+                const entityMessage = entityType
+                    ? `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} validation failed`
+                    : "Validation failed";
                 return res.status(400).json({
                     success: false,
-                    message: "Validation failed",
+                    message: entityMessage,
                     errors: validationErrors,
                 });
             }
@@ -43,16 +47,16 @@ const validate = (schema) => {
 };
 exports.validate = validate;
 // Specific validation helpers
-const validateBody = (schema) => (0, exports.validate)({ body: schema });
+const validateBody = (schema, entityType) => (0, exports.validate)({ body: schema }, entityType);
 exports.validateBody = validateBody;
-const validateQuery = (schema) => (0, exports.validate)({ query: schema });
+const validateQuery = (schema, entityType) => (0, exports.validate)({ query: schema }, entityType);
 exports.validateQuery = validateQuery;
-const validateParams = (schema) => (0, exports.validate)({ params: schema });
+const validateParams = (schema, entityType) => (0, exports.validate)({ params: schema }, entityType);
 exports.validateParams = validateParams;
-const validateAll = (bodySchema, querySchema, paramsSchema) => (0, exports.validate)({
+const validateAll = (bodySchema, querySchema, paramsSchema, entityType) => (0, exports.validate)({
     body: bodySchema,
     query: querySchema,
     params: paramsSchema,
-});
+}, entityType);
 exports.validateAll = validateAll;
 //# sourceMappingURL=validation.middleware.js.map

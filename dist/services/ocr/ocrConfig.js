@@ -13,7 +13,6 @@ class OcrConfigService {
         return {
             pdf_extraction_enabled: process.env.OCR_PDF_EXTRACTION_ENABLED === "true" || true,
             tesseract_enabled: process.env.OCR_TESSERACT_ENABLED === "true" || true,
-            cloudinary_fallback_enabled: process.env.OCR_CLOUDINARY_FALLBACK_ENABLED === "true" || false,
             default_timeout: parseInt(process.env.OCR_DEFAULT_TIMEOUT || "30000"),
             max_retry_attempts: parseInt(process.env.OCR_MAX_RETRY_ATTEMPTS || "3"),
             tesseract_language: process.env.OCR_TESSERACT_LANGUAGE || "eng",
@@ -46,9 +45,7 @@ class OcrConfigService {
             logger_1.default.error("Invalid PDF render DPI configuration");
             return false;
         }
-        if (!config.pdf_extraction_enabled &&
-            !config.tesseract_enabled &&
-            !config.cloudinary_fallback_enabled) {
+        if (!config.pdf_extraction_enabled && !config.tesseract_enabled) {
             logger_1.default.error("At least one OCR method must be enabled");
             return false;
         }
@@ -60,8 +57,6 @@ class OcrConfigService {
                 return this.config.pdf_extraction_enabled;
             case "tesseract-ocr":
                 return this.config.tesseract_enabled;
-            case "cloudinary-fallback":
-                return this.config.cloudinary_fallback_enabled;
             default:
                 return false;
         }

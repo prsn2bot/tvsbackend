@@ -18,7 +18,7 @@ const activateSubscription = async (
     endDate.setMonth(endDate.getMonth() + 1); // Assuming monthly subscription
 
     const newSubscription = await SubscriptionService.createSubscription({
-      user_id: userId,
+      user_id: parseInt(userId, 10),
       plan_id: planId,
       payment_provider_subscription_id: orderId,
       status: "active",

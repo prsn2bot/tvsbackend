@@ -1,6 +1,6 @@
 export interface OcrResult {
   text: string;
-  method: "pdf-extraction" | "tesseract-ocr" | "cloudinary-fallback";
+  method: "pdf-extraction" | "tesseract-ocr";
   confidence?: number;
   processingTime: number;
   metadata?: {
@@ -16,7 +16,6 @@ export interface OcrResult {
 export interface OcrOptions {
   enablePdfExtraction: boolean;
   enableTesseractOcr: boolean;
-  enableCloudinaryFallback: boolean;
   timeout: number;
   retryAttempts: number;
 }
@@ -52,7 +51,6 @@ export interface DocumentOcrMetadata {
 export interface OcrConfiguration {
   pdf_extraction_enabled: boolean;
   tesseract_enabled: boolean;
-  cloudinary_fallback_enabled: boolean;
   default_timeout: number;
   max_retry_attempts: number;
   tesseract_language: string;
@@ -71,10 +69,7 @@ export interface OcrErrorRecovery {
   };
 }
 
-export type OcrMethod =
-  | "pdf-extraction"
-  | "tesseract-ocr"
-  | "cloudinary-fallback";
+export type OcrMethod = "pdf-extraction" | "tesseract-ocr";
 
 export class OcrError extends Error {
   constructor(
@@ -167,7 +162,6 @@ export interface OcrMethodCapabilities {
 export interface OcrMethodsConfig {
   "pdf-extraction": OcrMethodCapabilities;
   "tesseract-ocr": OcrMethodCapabilities;
-  "cloudinary-fallback": OcrMethodCapabilities;
 }
 
 // Event types for OCR processing

@@ -14,8 +14,8 @@ export const UpdateUserRoleDto = z.object({
     .refine((val) => val !== undefined, "Role is required"),
 });
 
-// Admin Query Parameters DTO
-export const AdminQueryDto = z.object({
+// Base Admin Query Parameters DTO
+export const BaseAdminQueryDto = z.object({
   page: z
     .string()
     .transform((val) => parseInt(val, 10))
@@ -34,21 +34,6 @@ export const AdminQueryDto = z.object({
     .refine((val) => val >= 0, "Offset must be 0 or greater")
     .default("0")
     .optional(),
-  role: z.enum(["officer", "cvo", "legal_board", "admin", "owner"]).optional(),
-  account_status: z
-    .enum(["pending_verification", "active", "inactive", "suspended"])
-    .optional(),
-  status: z
-    .enum([
-      "intake",
-      "ai_analysis",
-      "awaiting_officer_review",
-      "awaiting_cvo_review",
-      "awaiting_legal_review",
-      "finalized",
-      "archived",
-    ])
-    .optional(),
   min_created_at: z
     .string()
     .datetime("Invalid date format. Use ISO 8601 format")
@@ -62,6 +47,34 @@ export const AdminQueryDto = z.object({
     .transform((val) => parseInt(val, 10))
     .refine((val) => !isNaN(val) && val > 0, "Invalid user ID")
     .optional(),
+});
+
+// Admin Query Parameters DTO for Users
+export const AdminUserQueryDto = BaseAdminQueryDto.extend({
+  role: z.enum(["officer", "cvo", "legal_board", "admin", "owner"]).optional(),
+  account_status: z
+    .enum(["pending_verification", "active", "inactive", "suspended"])
+    .optional(),
+});
+
+// Admin Query Parameters DTO for Cases
+export const AdminCaseQueryDto = BaseAdminQueryDto.extend({
+  status: z
+    .enum([
+      "intake",
+      "ai_analysis",
+      "awaiting_officer_review",
+      "awaiting_cvo_review",
+      "awaiting_legal_review",
+      "finalized",
+      "archived",
+    ])
+    .optional(),
+});
+
+// Admin Query Parameters DTO for Subscriptions
+export const AdminSubscriptionQueryDto = BaseAdminQueryDto.extend({
+  status: z.enum(["active", "cancelled", "past_due", "trialing"]).optional(),
   min_price: z
     .string()
     .transform((val) => parseFloat(val))
@@ -73,6 +86,9 @@ export const AdminQueryDto = z.object({
     .refine((val) => !isNaN(val) && val >= 0, "Invalid maximum price")
     .optional(),
 });
+
+// Generic Admin Query DTO (for audit logs and other generic endpoints)
+export const AdminQueryDto = BaseAdminQueryDto;
 
 // User ID Parameter DTO
 export const UserParamsDto = z.object({
@@ -102,6 +118,11 @@ export const PlanParamsDto = z.object({
 export type UpdateUserStatusDtoType = z.infer<typeof UpdateUserStatusDto>;
 export type UpdateUserRoleDtoType = z.infer<typeof UpdateUserRoleDto>;
 export type AdminQueryDtoType = z.infer<typeof AdminQueryDto>;
+export type AdminUserQueryDtoType = z.infer<typeof AdminUserQueryDto>;
+export type AdminCaseQueryDtoType = z.infer<typeof AdminCaseQueryDto>;
+export type AdminSubscriptionQueryDtoType = z.infer<
+  typeof AdminSubscriptionQueryDto
+>;
 export type UserParamsDtoType = z.infer<typeof UserParamsDto>;
 export type SubscriptionParamsDtoType = z.infer<typeof SubscriptionParamsDto>;
 export type PlanParamsDtoType = z.infer<typeof PlanParamsDto>;

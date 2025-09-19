@@ -26,7 +26,7 @@ router.post(
   hasRole(["officer", "owner"]),
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
-  validateBody(CreateCaseDto),
+  validateBody(CreateCaseDto, "case"),
   CaseController.createCase
 );
 
@@ -36,7 +36,7 @@ router.get(
   authenticate,
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
-  validateQuery(CaseQueryDto),
+  validateQuery(CaseQueryDto, "case"),
   CaseController.getCases
 );
 
@@ -46,7 +46,7 @@ router.get(
   authenticate,
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
-  validateParams(CaseParamsDto),
+  validateParams(CaseParamsDto, "case"),
   CaseController.getCaseById
 );
 
@@ -56,7 +56,7 @@ router.post(
   authenticate,
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
-  validateAll(AddDocumentDto, undefined, CaseParamsDto),
+  validateAll(AddDocumentDto, undefined, CaseParamsDto, "case"),
   CaseController.addDocument
 );
 
@@ -67,7 +67,7 @@ router.post(
   hasRole(["cvo", "legal_board", "owner"]),
   rateLimitMiddleware(),
   subscriptionFeatureMiddleware,
-  validateAll(SubmitReviewDto, undefined, CaseParamsDto),
+  validateAll(SubmitReviewDto, undefined, CaseParamsDto, "case"),
   CaseController.submitReview
 );
 

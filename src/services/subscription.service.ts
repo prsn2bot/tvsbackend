@@ -19,7 +19,7 @@ export class SubscriptionService {
   }
 
   static async createSubscription(subscriptionData: {
-    user_id: string;
+    user_id: number;
     plan_id: number;
     payment_provider_subscription_id?: string;
     status: string;
