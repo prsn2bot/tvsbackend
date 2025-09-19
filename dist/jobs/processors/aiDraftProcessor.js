@@ -5,7 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const aiDraft_model_1 = require("../../models/aiDraft.model");
 const AppError_1 = require("../../utils/AppError");
-const cloudinary_service_1 = require("../../services/cloudinary.service");
+const ocr_1 = require("../../services/ocr");
+const ocrMetadata_service_1 = require("../../services/ocr/ocrMetadata.service");
 const ai_service_1 = require("../../services/ai.service");
 const logger_1 = __importDefault(require("../../utils/logger"));
 const case_model_1 = require("../../models/case.model");
@@ -23,15 +24,49 @@ const aiDraftProcessor = async (job) => {
             throw new AppError_1.AppError(`Document with ID ${documentId} not found.`, 404);
         }
         logger_1.default.info(`Found document for case ID: ${document.case_id}`);
-        // 2. Get the document's text using OCR service
-        logger_1.default.info(`Extracting OCR text for Cloudinary ID: ${document.cloudinary_public_id}`);
-        const ocrText = await (0, cloudinary_service_1.getOcrTextFromCloudinary)(document.cloudinary_public_id);
-        // Update document with OCR text
-        await case_model_1.CaseModel.updateDocument(documentId, {
-            ocr_text: ocrText,
-            ocr_status: "completed",
-        });
-        logger_1.default.info(`OCR text extracted and saved for document ${documentId}`);
+        // 2. Get the document's text using enhanced OCR service
+        logger_1.default.info(`Starting OCR processing for document ${documentId} (Cloudinary ID: ${document.cloudinary_public_id})`);
+        // Mark document as OCR pending
+        await ocrMetadata_service_1.ocrMetadataService.markDocumentOcrPending(documentId, "auto-detect");
+        let ocrText;
+        let retryCount = 0;
+        try {
+            // Use the new OCR orchestrator with fallback capabilities
+            const ocrResult = await ocr_1.ocrOrchestrator.extractText(document.cloudinary_public_id, {
+                enablePdfExtraction: true,
+                enableTesseractOcr: true,
+                enableCloudinaryFallback: true,
+                timeout: 60000,
+                retryAttempts: 2,
+            });
+            ocrText = ocrResult.text;
+            // Update document with comprehensive OCR metadata
+            await ocrMetadata_service_1.ocrMetadataService.updateDocumentWithOcrResult(documentId, ocrResult, retryCount);
+            logger_1.default.info(`OCR processing completed for document ${documentId}`, {
+                method: ocrResult.method,
+                confidence: ocrResult.confidence,
+                textLength: ocrText.length,
+                processingTime: ocrResult.processingTime,
+            });
+        }
+        catch (ocrError) {
+            // Handle OCR failure with detailed error tracking
+            const errorMessage = ocrError instanceof Error ? ocrError.message : "Unknown OCR error";
+            logger_1.default.error(`OCR processing failed for document ${documentId}:`, {
+                error: errorMessage,
+                cloudinaryId: document.cloudinary_public_id,
+            });
+            // Update document with failure information
+            await ocrMetadata_service_1.ocrMetadataService.updateDocumentWithOcrFailure(documentId, "orchestrator-fallback", errorMessage, retryCount);
+            // For backward compatibility, still try to get some text
+            // This ensures the AI processing can continue even if OCR fails
+            ocrText = `[OCR Processing Failed: ${errorMessage}]`;
+            // Update with minimal text to allow processing to continue
+            await case_model_1.CaseModel.updateDocument(documentId, {
+                ocr_text: ocrText,
+                ocr_status: "failed",
+            });
+        }
         // 3. Create the vector embedding for the document text
         logger_1.default.info(`Creating vector embedding for document ${documentId}`);
         const vectorEmbedding = await (0, ai_service_1.createVectorEmbedding)(ocrText);
@@ -61,7 +96,8 @@ const aiDraftProcessor = async (job) => {
         logger_1.default.error(`Failed to process AI job for document ${documentId}:`, error.message);
         // Update document status to failed if possible
         try {
-            await case_model_1.CaseModel.updateDocument(documentId, { ocr_status: "failed" });
+            const errorMessage = error instanceof Error ? error.message : "AI processing failed";
+            await ocrMetadata_service_1.ocrMetadataService.updateDocumentWithOcrFailure(documentId, "ai-processing-error", errorMessage);
         }
         catch (updateError) {
             logger_1.default.error(`Failed to update document status to failed:`, updateError);

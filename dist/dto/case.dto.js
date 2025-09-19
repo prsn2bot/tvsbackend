@@ -32,6 +32,12 @@ exports.AddDocumentDto = zod_1.z.object({
         .url("Invalid secure URL format")
         .min(1, "Secure URL is required"),
     ocr_text: zod_1.z.string().optional(),
+    ocr_method_used: zod_1.z.string().optional(),
+    ocr_confidence: zod_1.z.number().min(0).max(1).optional(),
+    ocr_processing_time: zod_1.z.number().min(0).optional(),
+    ocr_retry_count: zod_1.z.number().min(0).optional(),
+    ocr_error_details: zod_1.z.string().optional(),
+    ocr_last_attempt: zod_1.z.date().optional(),
 });
 // Submit Review DTO
 exports.SubmitReviewDto = zod_1.z.object({

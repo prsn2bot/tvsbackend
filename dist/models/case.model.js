@@ -99,6 +99,13 @@ class CaseModel {
             file_type: row.file_type,
             file_size_bytes: row.file_size_bytes,
             ocr_text: row.ocr_text,
+            ocr_status: row.ocr_status,
+            ocr_method_used: row.ocr_method_used,
+            ocr_confidence: row.ocr_confidence,
+            ocr_processing_time: row.ocr_processing_time,
+            ocr_retry_count: row.ocr_retry_count,
+            ocr_error_details: row.ocr_error_details,
+            ocr_last_attempt: row.ocr_last_attempt,
             vector_embedding: row.vector_embedding,
             uploaded_at: row.uploaded_at,
         };
@@ -182,6 +189,13 @@ class CaseModel {
             file_type: row.file_type,
             file_size_bytes: row.file_size_bytes,
             ocr_text: row.ocr_text,
+            ocr_status: row.ocr_status,
+            ocr_method_used: row.ocr_method_used,
+            ocr_confidence: row.ocr_confidence,
+            ocr_processing_time: row.ocr_processing_time,
+            ocr_retry_count: row.ocr_retry_count,
+            ocr_error_details: row.ocr_error_details,
+            ocr_last_attempt: row.ocr_last_attempt,
             vector_embedding: row.vector_embedding,
             uploaded_at: row.uploaded_at,
         };
@@ -203,6 +217,30 @@ class CaseModel {
         if (updates.ocr_status !== undefined) {
             fields.push(`ocr_status = $${paramIndex++}`);
             values.push(updates.ocr_status);
+        }
+        if (updates.ocr_method_used !== undefined) {
+            fields.push(`ocr_method_used = $${paramIndex++}`);
+            values.push(updates.ocr_method_used);
+        }
+        if (updates.ocr_confidence !== undefined) {
+            fields.push(`ocr_confidence = $${paramIndex++}`);
+            values.push(updates.ocr_confidence);
+        }
+        if (updates.ocr_processing_time !== undefined) {
+            fields.push(`ocr_processing_time = $${paramIndex++}`);
+            values.push(updates.ocr_processing_time);
+        }
+        if (updates.ocr_retry_count !== undefined) {
+            fields.push(`ocr_retry_count = $${paramIndex++}`);
+            values.push(updates.ocr_retry_count);
+        }
+        if (updates.ocr_error_details !== undefined) {
+            fields.push(`ocr_error_details = $${paramIndex++}`);
+            values.push(updates.ocr_error_details);
+        }
+        if (updates.ocr_last_attempt !== undefined) {
+            fields.push(`ocr_last_attempt = $${paramIndex++}`);
+            values.push(updates.ocr_last_attempt);
         }
         if (updates.vector_embedding !== undefined) {
             fields.push(`vector_embedding = $${paramIndex++}`);
@@ -232,6 +270,13 @@ class CaseModel {
             file_type: row.file_type,
             file_size_bytes: row.file_size_bytes,
             ocr_text: row.ocr_text,
+            ocr_status: row.ocr_status,
+            ocr_method_used: row.ocr_method_used,
+            ocr_confidence: row.ocr_confidence,
+            ocr_processing_time: row.ocr_processing_time,
+            ocr_retry_count: row.ocr_retry_count,
+            ocr_error_details: row.ocr_error_details,
+            ocr_last_attempt: row.ocr_last_attempt,
             vector_embedding: row.vector_embedding,
             uploaded_at: row.uploaded_at,
         };

@@ -45,6 +45,12 @@ export interface Document {
   file_size_bytes?: number;
   ocr_text?: string;
   ocr_status?: OcrStatus; // 'pending', 'completed', 'failed'
+  ocr_method_used?: string; // OCR method used for extraction
+  ocr_confidence?: number; // Confidence score (0.0 to 1.0)
+  ocr_processing_time?: number; // Processing time in milliseconds
+  ocr_retry_count?: number; // Number of retry attempts
+  ocr_error_details?: string; // Error details if OCR failed
+  ocr_last_attempt?: Date; // Timestamp of last OCR attempt
   vector_embedding?: number[];
   uploaded_at: Date;
 }
