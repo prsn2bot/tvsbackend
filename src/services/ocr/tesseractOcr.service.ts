@@ -19,6 +19,9 @@ import { ocrConfig } from "./ocrConfig";
 import logger from "../../utils/logger";
 import fs from "fs";
 import path from "path";
+import https from "https";
+import http from "http";
+import os from "os";
 
 export class TesseractOcrService {
   private readonly method: OcrMethod = "tesseract-ocr";
@@ -268,7 +271,7 @@ export class TesseractOcrService {
    * Preprocesses image for better OCR accuracy
    */
   async preprocessAndRecognize(
-    filePath: string,
+    filePathOrUrl: string,
     options: {
       enhanceContrast?: boolean;
       removeNoise?: boolean;
@@ -277,28 +280,53 @@ export class TesseractOcrService {
   ): Promise<TesseractResult> {
     return withErrorHandling(
       async () => {
-        logger.info(`Preprocessing image for OCR: ${filePath}`);
+        logger.info(`Preprocessing image for OCR: ${filePathOrUrl}`);
 
-        // For now, we'll use basic Tesseract recognition
-        // In a full implementation, you would add image preprocessing here
-        // using libraries like Sharp or Canvas for image manipulation
+        let filePath = filePathOrUrl;
+        let tempFile: string | null = null;
 
-        const result = await this.recognizeText(filePath, options);
+        try {
+          // If it's a URL, download it first
+          if (this.isUrl(filePathOrUrl)) {
+            tempFile = await this.downloadFile(filePathOrUrl);
+            filePath = tempFile;
+            logger.info(`Downloaded file from URL to: ${tempFile}`);
+          }
 
-        // Assess quality and potentially retry with different settings
-        const quality = assessTextQuality(result.text, result.confidence);
+          // For now, we'll use basic Tesseract recognition
+          // In a full implementation, you would add image preprocessing here
+          // using libraries like Sharp or Canvas for image manipulation
 
-        if (quality.containsGibberish && result.confidence < 0.6) {
-          logger.info(
-            "Low quality result detected, attempting fallback recognition"
-          );
-          return await this.recognizeWithFallback(filePath, options);
+          const result = await this.recognizeText(filePath, options);
+
+          // Assess quality and potentially retry with different settings
+          const quality = assessTextQuality(result.text, result.confidence);
+
+          if (quality.containsGibberish && result.confidence < 0.6) {
+            logger.info(
+              "Low quality result detected, attempting fallback recognition"
+            );
+            return await this.recognizeWithFallback(filePath, options);
+          }
+
+          return result;
+        } finally {
+          // Clean up temporary file if it was downloaded
+          if (tempFile) {
+            try {
+              await fs.promises.unlink(tempFile);
+              logger.info(`Cleaned up temporary file: ${tempFile}`);
+            } catch (error) {
+              logger.warn(
+                `Failed to clean up temporary file: ${tempFile}`,
+                error
+              );
+            }
+          }
         }
-
-        return result;
       },
       this.method,
-      { filePath }
+      { filePath: filePathOrUrl }
     );
   }
 
@@ -462,6 +490,106 @@ export class TesseractOcrService {
   async reinitialize(): Promise<void> {
     await this.cleanup();
     await this.initializeWorker();
+  }
+
+  /**
+   * Checks if input is a URL
+   */
+  private isUrl(input: string): boolean {
+    return input.startsWith("http://") || input.startsWith("https://");
+  }
+
+  /**
+   * Downloads a file from URL to a temporary location
+   */
+  private async downloadFile(url: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const tempDir = os.tmpdir();
+
+      // Convert Cloudinary PDF URLs to image format for OCR
+      let downloadUrl = url;
+      if (url.includes("cloudinary.com") && url.includes("/raw/upload/")) {
+        // Convert Cloudinary raw PDF URL to image format
+        // Use proper Cloudinary transformation: fl_attachment -> f_png,pg_1
+        downloadUrl = url.replace(
+          "/raw/upload/",
+          "/image/upload/f_png,pg_1,fl_attachment/"
+        );
+        logger.info(`Converting Cloudinary PDF URL to image: ${downloadUrl}`);
+      }
+
+      const tempFileName = `ocr_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}.png`;
+      const tempFilePath = path.join(tempDir, tempFileName);
+
+      const file = fs.createWriteStream(tempFilePath);
+      const client = downloadUrl.startsWith("https://") ? https : http;
+
+      logger.info(`Downloading file from URL: ${downloadUrl}`);
+
+      // Set maximum file size (20MB)
+      const maxFileSize = 20 * 1024 * 1024;
+      let downloadedBytes = 0;
+
+      const request = client.get(downloadUrl, (response) => {
+        if (response.statusCode !== 200) {
+          reject(
+            new Error(`Failed to download file: HTTP ${response.statusCode}`)
+          );
+          return;
+        }
+
+        // Check content length if provided
+        const contentLength = parseInt(
+          response.headers["content-length"] || "0"
+        );
+        if (contentLength > maxFileSize) {
+          reject(
+            new Error(
+              `File too large: ${contentLength} bytes (max: ${maxFileSize})`
+            )
+          );
+          return;
+        }
+
+        response.on("data", (chunk) => {
+          downloadedBytes += chunk.length;
+          if (downloadedBytes > maxFileSize) {
+            request.destroy();
+            fs.unlink(tempFilePath, () => {});
+            reject(new Error(`File too large: exceeded ${maxFileSize} bytes`));
+            return;
+          }
+        });
+
+        response.pipe(file);
+
+        file.on("finish", () => {
+          file.close();
+          logger.info(
+            `File downloaded successfully to: ${tempFilePath} (${downloadedBytes} bytes)`
+          );
+          resolve(tempFilePath);
+        });
+
+        file.on("error", (error) => {
+          fs.unlink(tempFilePath, () => {}); // Clean up on error
+          reject(error);
+        });
+      });
+
+      request.on("error", (error) => {
+        fs.unlink(tempFilePath, () => {}); // Clean up on error
+        reject(error);
+      });
+
+      request.setTimeout(30000, () => {
+        request.destroy();
+        fs.unlink(tempFilePath, () => {}); // Clean up on timeout
+        reject(new Error("Download timeout"));
+      });
+    });
   }
 }
 

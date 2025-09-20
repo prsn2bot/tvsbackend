@@ -1,4 +1,3 @@
-import { createCanvas } from "canvas";
 import { PdfExtractionResult, OcrMethod } from "./types/ocr.types";
 import {
   EnhancedOcrError,
@@ -14,36 +13,52 @@ import https from "https";
 import http from "http";
 import os from "os";
 
-// PDF.js will be imported dynamically to avoid ES module issues
-let pdfjs: any = null;
+// Import pdf-parse with any type to avoid TypeScript errors
+const pdfParse = require("pdf-parse");
 
 export class PdfExtractorService {
   private readonly method: OcrMethod = "pdf-extraction";
 
   /**
-   * Initialize PDF.js dynamically to avoid ES module issues
+   * Extract text from PDF using pdf-parse library
    */
-  private async initializePdfjs(): Promise<any> {
-    if (!pdfjs) {
-      try {
-        pdfjs = await import("pdfjs-dist");
-        // Configure PDF.js worker
-        pdfjs.GlobalWorkerOptions.workerSrc = require.resolve(
-          "pdfjs-dist/build/pdf.worker.js"
-        );
-        logger.debug("PDF.js initialized successfully");
-      } catch (error) {
-        logger.error("Failed to initialize PDF.js:", error);
-        throw new EnhancedOcrError(
-          "Failed to initialize PDF.js library",
-          this.method,
-          OCR_ERROR_CODES.PROCESSING_FAILED,
-          undefined,
-          error instanceof Error ? error : new Error(String(error))
-        );
-      }
+  private async extractTextFromPdf(
+    filePath: string
+  ): Promise<PdfExtractionResult> {
+    try {
+      logger.info(`Extracting text from PDF: ${filePath}`);
+
+      const dataBuffer = await fs.promises.readFile(filePath);
+      const pdfData: any = await pdfParse(dataBuffer);
+
+      const sanitizedText = sanitizeExtractedText(pdfData.text || "");
+
+      logger.info(
+        `PDF text extraction completed: ${
+          sanitizedText.length
+        } characters from ${pdfData.numpages || 0} pages`
+      );
+
+      const result: PdfExtractionResult = {
+        text: sanitizedText,
+        pageCount: pdfData.numpages || 0,
+        hasSelectableText: sanitizedText.length > 0,
+        extractionMethod: "native-text" as const,
+      };
+
+      return result;
+    } catch (error) {
+      logger.error(`PDF text extraction failed: ${error}`);
+      throw new EnhancedOcrError(
+        `Failed to extract text from PDF: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        this.method,
+        OCR_ERROR_CODES.PROCESSING_FAILED,
+        undefined,
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
-    return pdfjs;
   }
 
   /**
@@ -63,75 +78,25 @@ export class PdfExtractorService {
       async () => {
         logger.info(`Starting PDF text extraction for: ${filePathOrUrl}`);
 
-        // Handle both local files and URLs
-        const filePath = await this.resolveFilePath(filePathOrUrl);
         let tempFile: string | null = null;
 
         try {
+          let actualFilePath = filePathOrUrl;
+
           // If it's a URL, download it first
           if (this.isUrl(filePathOrUrl)) {
             tempFile = await this.downloadFile(filePathOrUrl);
+            actualFilePath = tempFile;
             logger.info(`Downloaded file from URL to: ${tempFile}`);
           }
 
-          const actualFilePath = tempFile || filePath;
+          // Extract text using pdf-parse
+          const result = await this.extractTextFromPdf(actualFilePath);
 
-          // Validate file exists and is accessible
-          await this.validateFile(actualFilePath);
+          const processingTime = Date.now() - startTime;
+          logger.info(`PDF extraction completed in ${processingTime}ms`);
 
-          // Load PDF document
-          const pdfDocument = await this.loadPdfDocument(actualFilePath);
-
-          try {
-            // First attempt: Extract native text
-            const nativeTextResult = await this.extractNativeText(
-              pdfDocument,
-              options
-            );
-
-            // Check if native text extraction was successful
-            const quality = assessTextQuality(nativeTextResult.text);
-            const hasGoodQuality =
-              quality.estimatedAccuracy >= (options.qualityThreshold || 0.5);
-
-            if (nativeTextResult.text.length > 10 && hasGoodQuality) {
-              logger.info(
-                `PDF native text extraction successful: ${nativeTextResult.text.length} characters`
-              );
-              return {
-                ...nativeTextResult,
-                extractionMethod: "native-text",
-              };
-            }
-
-            // Fallback: Render pages and extract text if enabled
-            if (
-              options.enableFallbackRendering &&
-              nativeTextResult.text.length < 50
-            ) {
-              logger.info(
-                "Native text extraction yielded minimal results, attempting rendered text extraction"
-              );
-              const renderedTextResult = await this.extractRenderedText(
-                pdfDocument,
-                options
-              );
-
-              return {
-                ...renderedTextResult,
-                extractionMethod: "rendered-text",
-              };
-            }
-
-            // Return native text even if quality is low
-            return {
-              ...nativeTextResult,
-              extractionMethod: "native-text",
-            };
-          } finally {
-            // Clean up PDF document
-            await pdfDocument.destroy();
-          }
+          return result;
         } finally {
           // Clean up temporary file if it was downloaded
           if (tempFile) {
@@ -160,16 +125,6 @@ export class PdfExtractorService {
   }
 
   /**
-   * Resolves file path - returns as-is for local files, or prepares for URL download
-   */
-  private async resolveFilePath(input: string): Promise<string> {
-    if (this.isUrl(input)) {
-      return input; // Will be handled by downloadFile
-    }
-    return input;
-  }
-
-  /**
    * Downloads a file from URL to a temporary location
    */
   private async downloadFile(url: string): Promise<string> {
@@ -185,6 +140,10 @@ export class PdfExtractorService {
 
       logger.info(`Downloading file from URL: ${url}`);
 
+      // Set maximum file size (20MB)
+      const maxFileSize = 20 * 1024 * 1024;
+      let downloadedBytes = 0;
+
       const request = client.get(url, (response) => {
         if (response.statusCode !== 200) {
           reject(
@@ -193,11 +152,36 @@ export class PdfExtractorService {
           return;
         }
 
+        // Check content length if provided
+        const contentLength = parseInt(
+          response.headers["content-length"] || "0"
+        );
+        if (contentLength > maxFileSize) {
+          reject(
+            new Error(
+              `File too large: ${contentLength} bytes (max: ${maxFileSize})`
+            )
+          );
+          return;
+        }
+
+        response.on("data", (chunk) => {
+          downloadedBytes += chunk.length;
+          if (downloadedBytes > maxFileSize) {
+            request.destroy();
+            fs.unlink(tempFilePath, () => {});
+            reject(new Error(`File too large: exceeded ${maxFileSize} bytes`));
+            return;
+          }
+        });
+
         response.pipe(file);
 
         file.on("finish", () => {
           file.close();
-          logger.info(`File downloaded successfully to: ${tempFilePath}`);
+          logger.info(
+            `File downloaded successfully to: ${tempFilePath} (${downloadedBytes} bytes)`
+          );
           resolve(tempFilePath);
         });
 
@@ -221,231 +205,20 @@ export class PdfExtractorService {
   }
 
   /**
-   * Validates that the PDF file exists and is accessible
-   */
-  private async validateFile(filePath: string): Promise<void> {
-    try {
-      const stats = await fs.promises.stat(filePath);
-
-      if (!stats.isFile()) {
-        throw OcrErrorFactory.createFileError(
-          this.method,
-          OCR_ERROR_CODES.FILE_NOT_FOUND,
-          filePath
-        );
-      }
-
-      // Check file size (max 50MB for PDF extraction)
-      const maxSize = 50 * 1024 * 1024; // 50MB
-      if (stats.size > maxSize) {
-        throw OcrErrorFactory.createFileError(
-          this.method,
-          OCR_ERROR_CODES.FILE_TOO_LARGE,
-          filePath
-        );
-      }
-
-      // Check file extension
-      const ext = path.extname(filePath).toLowerCase();
-      if (ext !== ".pdf") {
-        throw OcrErrorFactory.createFileError(
-          this.method,
-          OCR_ERROR_CODES.UNSUPPORTED_FORMAT,
-          filePath
-        );
-      }
-    } catch (error) {
-      if (error instanceof EnhancedOcrError) {
-        throw error;
-      }
-
-      throw OcrErrorFactory.createFileError(
-        this.method,
-        OCR_ERROR_CODES.FILE_NOT_FOUND,
-        filePath,
-        error as Error
-      );
-    }
-  }
-
-  /**
-   * Loads PDF document using PDF.js
-   */
-  private async loadPdfDocument(filePath: string): Promise<any> {
-    try {
-      const pdfjsLib = await this.initializePdfjs();
-      const data = await fs.promises.readFile(filePath);
-
-      const loadingTask = pdfjsLib.getDocument({
-        data: data,
-        useSystemFonts: true,
-        disableFontFace: false,
-        verbosity: 0, // Reduce logging
-      });
-
-      const pdfDocument = await loadingTask.promise;
-
-      logger.info(`PDF loaded successfully: ${pdfDocument.numPages} pages`);
-      return pdfDocument;
-    } catch (error) {
-      logger.error(`Failed to load PDF document: ${filePath}`, error);
-
-      if (error instanceof Error && error.message.includes("Invalid PDF")) {
-        throw OcrErrorFactory.createFileError(
-          this.method,
-          OCR_ERROR_CODES.CORRUPTED_FILE,
-          filePath,
-          error
-        );
-      }
-
-      throw OcrErrorFactory.createProcessingError(
-        this.method,
-        OCR_ERROR_CODES.PROCESSING_FAILED,
-        { filePath },
-        error as Error
-      );
-    }
-  }
-
-  /**
-   * Extracts native text content from PDF pages
-   */
-  private async extractNativeText(
-    pdfDocument: any,
-    options: { maxPages?: number } = {}
-  ): Promise<Omit<PdfExtractionResult, "extractionMethod">> {
-    const maxPages = Math.min(
-      options.maxPages || pdfDocument.numPages,
-      pdfDocument.numPages
-    );
-    const textParts: string[] = [];
-    let hasSelectableText = false;
-
-    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-      try {
-        const page = await pdfDocument.getPage(pageNum);
-        const textContent = await page.getTextContent();
-
-        // Extract text items
-        const pageText = textContent.items
-          .map((item: any) => {
-            if ("str" in item) {
-              return item.str;
-            }
-            return "";
-          })
-          .join(" ");
-
-        if (pageText.trim().length > 0) {
-          hasSelectableText = true;
-          textParts.push(pageText);
-        }
-
-        // Clean up page
-        page.cleanup();
-      } catch (error) {
-        logger.warn(`Failed to extract text from page ${pageNum}:`, error);
-        // Continue with other pages
-      }
-    }
-
-    const fullText = sanitizeExtractedText(textParts.join("\n\n"));
-
-    return {
-      text: fullText,
-      pageCount: pdfDocument.numPages,
-      hasSelectableText,
-    };
-  }
-
-  /**
-   * Renders PDF pages to canvas and extracts text (for scanned PDFs)
-   */
-  private async extractRenderedText(
-    pdfDocument: any,
-    options: { maxPages?: number } = {}
-  ): Promise<Omit<PdfExtractionResult, "extractionMethod">> {
-    const maxPages = Math.min(options.maxPages || 5, pdfDocument.numPages); // Limit rendered pages
-    const textParts: string[] = [];
-
-    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-      try {
-        const page = await pdfDocument.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
-
-        // Create canvas
-        const canvas = createCanvas(viewport.width, viewport.height);
-        const context = canvas.getContext("2d");
-
-        // Render page to canvas
-        const renderContext: any = {
-          canvasContext: context,
-          viewport: viewport,
-          canvas: canvas,
-        };
-
-        await page.render(renderContext).promise;
-
-        // Convert canvas to image data for OCR
-        // Note: This would typically be passed to Tesseract.js
-        // For now, we'll return a placeholder indicating rendered extraction
-        textParts.push(`[Rendered page ${pageNum} - requires Tesseract OCR]`);
-
-        // Clean up
-        page.cleanup();
-      } catch (error) {
-        logger.warn(`Failed to render page ${pageNum}:`, error);
-      }
-    }
-
-    return {
-      text: textParts.join("\n\n"),
-      pageCount: pdfDocument.numPages,
-      hasSelectableText: false,
-    };
-  }
-
-  /**
-   * Checks if a PDF has selectable text content
+   * Check if PDF has selectable text (for backward compatibility with tests)
    */
   async hasSelectableText(filePath: string): Promise<boolean> {
-    return withErrorHandling(
-      async () => {
-        await this.validateFile(filePath);
-        const pdfDocument = await this.loadPdfDocument(filePath);
-
-        try {
-          // Check first few pages for text content
-          const pagesToCheck = Math.min(3, pdfDocument.numPages);
-
-          for (let pageNum = 1; pageNum <= pagesToCheck; pageNum++) {
-            const page = await pdfDocument.getPage(pageNum);
-            const textContent = await page.getTextContent();
-
-            const hasText = textContent.items.some(
-              (item: any) => "str" in item && item.str.trim().length > 0
-            );
-
-            page.cleanup();
-
-            if (hasText) {
-              return true;
-            }
-          }
-
-          return false;
-        } finally {
-          await pdfDocument.destroy();
-        }
-      },
-      this.method,
-      { filePath }
-    );
+    try {
+      const result = await this.extractText(filePath);
+      return result.hasSelectableText;
+    } catch (error) {
+      logger.error(`Failed to check selectable text: ${error}`);
+      return false;
+    }
   }
 
   /**
-   * Gets PDF metadata and basic information
+   * Get PDF info (for backward compatibility with tests)
    */
   async getPdfInfo(filePath: string): Promise<{
     numPages: number;
@@ -455,33 +228,23 @@ export class PdfExtractorService {
     author?: string;
     creationDate?: Date;
   }> {
-    return withErrorHandling(
-      async () => {
-        await this.validateFile(filePath);
-        const stats = await fs.promises.stat(filePath);
-        const pdfDocument = await this.loadPdfDocument(filePath);
+    try {
+      const result = await this.extractText(filePath);
+      const stats = await fs.promises.stat(filePath);
 
-        try {
-          const metadata = await pdfDocument.getMetadata();
-          const hasText = await this.hasSelectableText(filePath);
-
-          return {
-            numPages: pdfDocument.numPages,
-            hasSelectableText: hasText,
-            fileSize: stats.size,
-            title: (metadata.info as any)?.Title,
-            author: (metadata.info as any)?.Author,
-            creationDate: (metadata.info as any)?.CreationDate
-              ? new Date((metadata.info as any).CreationDate)
-              : undefined,
-          };
-        } finally {
-          await pdfDocument.destroy();
-        }
-      },
-      this.method,
-      { filePath }
-    );
+      return {
+        numPages: result.pageCount,
+        hasSelectableText: result.hasSelectableText,
+        fileSize: stats.size,
+        // pdf-parse doesn't provide metadata, so we'll return undefined for these
+        title: undefined,
+        author: undefined,
+        creationDate: undefined,
+      };
+    } catch (error) {
+      logger.error(`Failed to get PDF info: ${error}`);
+      throw error;
+    }
   }
 }
 

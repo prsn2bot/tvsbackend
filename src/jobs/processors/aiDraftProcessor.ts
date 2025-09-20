@@ -116,9 +116,20 @@ const aiDraftProcessor = async (job: Job<AiProcessingJobData>) => {
 
     // 5. Save the new AI draft to the database
     logger.info(`Saving AI draft for case ${document.case_id}`);
+
+    // Get the next version number
+    const latestDraft = await AiDraftModel.findLatestByCaseId(
+      document.case_id.toString()
+    );
+    const nextVersion = latestDraft ? latestDraft.version + 1 : 1;
+
+    logger.info(
+      `Creating AI draft version ${nextVersion} for case ${document.case_id}`
+    );
+
     await AiDraftModel.createAiDraft({
       case_id: document.case_id,
-      version: 1, // You could add logic to determine the next version number
+      version: nextVersion,
       content: aiResult.draftContent,
       defence_score: aiResult.defenceScore,
       confidence_score: aiResult.confidenceScore,

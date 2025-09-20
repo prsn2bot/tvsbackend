@@ -11,6 +11,9 @@ const ocrConfig_1 = require("./ocrConfig");
 const logger_1 = __importDefault(require("../../utils/logger"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const https_1 = __importDefault(require("https"));
+const http_1 = __importDefault(require("http"));
+const os_1 = __importDefault(require("os"));
 class TesseractOcrService {
     constructor() {
         this.method = "tesseract-ocr";
@@ -168,21 +171,43 @@ class TesseractOcrService {
     /**
      * Preprocesses image for better OCR accuracy
      */
-    async preprocessAndRecognize(filePath, options = {}) {
+    async preprocessAndRecognize(filePathOrUrl, options = {}) {
         return (0, errorHandling_1.withErrorHandling)(async () => {
-            logger_1.default.info(`Preprocessing image for OCR: ${filePath}`);
-            // For now, we'll use basic Tesseract recognition
-            // In a full implementation, you would add image preprocessing here
-            // using libraries like Sharp or Canvas for image manipulation
-            const result = await this.recognizeText(filePath, options);
-            // Assess quality and potentially retry with different settings
-            const quality = (0, ocrUtils_1.assessTextQuality)(result.text, result.confidence);
-            if (quality.containsGibberish && result.confidence < 0.6) {
-                logger_1.default.info("Low quality result detected, attempting fallback recognition");
-                return await this.recognizeWithFallback(filePath, options);
+            logger_1.default.info(`Preprocessing image for OCR: ${filePathOrUrl}`);
+            let filePath = filePathOrUrl;
+            let tempFile = null;
+            try {
+                // If it's a URL, download it first
+                if (this.isUrl(filePathOrUrl)) {
+                    tempFile = await this.downloadFile(filePathOrUrl);
+                    filePath = tempFile;
+                    logger_1.default.info(`Downloaded file from URL to: ${tempFile}`);
+                }
+                // For now, we'll use basic Tesseract recognition
+                // In a full implementation, you would add image preprocessing here
+                // using libraries like Sharp or Canvas for image manipulation
+                const result = await this.recognizeText(filePath, options);
+                // Assess quality and potentially retry with different settings
+                const quality = (0, ocrUtils_1.assessTextQuality)(result.text, result.confidence);
+                if (quality.containsGibberish && result.confidence < 0.6) {
+                    logger_1.default.info("Low quality result detected, attempting fallback recognition");
+                    return await this.recognizeWithFallback(filePath, options);
+                }
+                return result;
             }
-            return result;
-        }, this.method, { filePath });
+            finally {
+                // Clean up temporary file if it was downloaded
+                if (tempFile) {
+                    try {
+                        await fs_1.default.promises.unlink(tempFile);
+                        logger_1.default.info(`Cleaned up temporary file: ${tempFile}`);
+                    }
+                    catch (error) {
+                        logger_1.default.warn(`Failed to clean up temporary file: ${tempFile}`, error);
+                    }
+                }
+            }
+        }, this.method, { filePath: filePathOrUrl });
     }
     /**
      * Validates input file for OCR processing
@@ -306,6 +331,78 @@ class TesseractOcrService {
     async reinitialize() {
         await this.cleanup();
         await this.initializeWorker();
+    }
+    /**
+     * Checks if input is a URL
+     */
+    isUrl(input) {
+        return input.startsWith("http://") || input.startsWith("https://");
+    }
+    /**
+     * Downloads a file from URL to a temporary location
+     */
+    async downloadFile(url) {
+        return new Promise((resolve, reject) => {
+            const tempDir = os_1.default.tmpdir();
+            // Convert Cloudinary PDF URLs to image format for OCR
+            let downloadUrl = url;
+            if (url.includes("cloudinary.com") && url.includes("/raw/upload/")) {
+                // Convert Cloudinary raw PDF URL to image format
+                // Use proper Cloudinary transformation: fl_attachment -> f_png,pg_1
+                downloadUrl = url.replace("/raw/upload/", "/image/upload/f_png,pg_1,fl_attachment/");
+                logger_1.default.info(`Converting Cloudinary PDF URL to image: ${downloadUrl}`);
+            }
+            const tempFileName = `ocr_${Date.now()}_${Math.random()
+                .toString(36)
+                .substr(2, 9)}.png`;
+            const tempFilePath = path_1.default.join(tempDir, tempFileName);
+            const file = fs_1.default.createWriteStream(tempFilePath);
+            const client = downloadUrl.startsWith("https://") ? https_1.default : http_1.default;
+            logger_1.default.info(`Downloading file from URL: ${downloadUrl}`);
+            // Set maximum file size (20MB)
+            const maxFileSize = 20 * 1024 * 1024;
+            let downloadedBytes = 0;
+            const request = client.get(downloadUrl, (response) => {
+                if (response.statusCode !== 200) {
+                    reject(new Error(`Failed to download file: HTTP ${response.statusCode}`));
+                    return;
+                }
+                // Check content length if provided
+                const contentLength = parseInt(response.headers["content-length"] || "0");
+                if (contentLength > maxFileSize) {
+                    reject(new Error(`File too large: ${contentLength} bytes (max: ${maxFileSize})`));
+                    return;
+                }
+                response.on("data", (chunk) => {
+                    downloadedBytes += chunk.length;
+                    if (downloadedBytes > maxFileSize) {
+                        request.destroy();
+                        fs_1.default.unlink(tempFilePath, () => { });
+                        reject(new Error(`File too large: exceeded ${maxFileSize} bytes`));
+                        return;
+                    }
+                });
+                response.pipe(file);
+                file.on("finish", () => {
+                    file.close();
+                    logger_1.default.info(`File downloaded successfully to: ${tempFilePath} (${downloadedBytes} bytes)`);
+                    resolve(tempFilePath);
+                });
+                file.on("error", (error) => {
+                    fs_1.default.unlink(tempFilePath, () => { }); // Clean up on error
+                    reject(error);
+                });
+            });
+            request.on("error", (error) => {
+                fs_1.default.unlink(tempFilePath, () => { }); // Clean up on error
+                reject(error);
+            });
+            request.setTimeout(30000, () => {
+                request.destroy();
+                fs_1.default.unlink(tempFilePath, () => { }); // Clean up on timeout
+                reject(new Error("Download timeout"));
+            });
+        });
     }
 }
 exports.TesseractOcrService = TesseractOcrService;

@@ -100,17 +100,35 @@ export class OcrOrchestrator {
   }
 
   private getDocumentType(documentUrl: string): "pdf" | "image" | "unknown" {
-    const extension = documentUrl.toLowerCase().split(".").pop();
+    let detectedType: "pdf" | "image" | "unknown" = "unknown";
 
-    if (extension === "pdf") {
-      return "pdf";
-    } else if (
-      ["jpg", "jpeg", "png", "tiff", "bmp", "webp"].includes(extension || "")
+    // Check for Cloudinary raw upload URLs (typically PDFs)
+    if (
+      documentUrl.includes("cloudinary.com") &&
+      documentUrl.includes("/raw/upload/")
     ) {
-      return "image";
+      detectedType = "pdf";
+    }
+    // Check for Cloudinary image upload URLs
+    else if (
+      documentUrl.includes("cloudinary.com") &&
+      documentUrl.includes("/image/upload/")
+    ) {
+      detectedType = "image";
+    } else {
+      const extension = documentUrl.toLowerCase().split(".").pop();
+
+      if (extension === "pdf") {
+        detectedType = "pdf";
+      } else if (
+        ["jpg", "jpeg", "png", "tiff", "bmp", "webp"].includes(extension || "")
+      ) {
+        detectedType = "image";
+      }
     }
 
-    return "unknown";
+    logger.info(`Document type detected for ${documentUrl}: ${detectedType}`);
+    return detectedType;
   }
 
   private buildProcessingChain(
@@ -119,16 +137,20 @@ export class OcrOrchestrator {
   ): OcrMethod[] {
     const chain: OcrMethod[] = [];
 
+    logger.info(`Building processing chain for document type: ${documentType}`);
+
     if (documentType === "pdf" && options.enablePdfExtraction) {
       chain.push("pdf-extraction");
+      logger.info("Added pdf-extraction to processing chain");
     }
 
-    if (options.enableTesseractOcr) {
+    // Only use Tesseract for image files or unknown types that might be images
+    if (options.enableTesseractOcr && documentType !== "pdf") {
       chain.push("tesseract-ocr");
+      logger.info("Added tesseract-ocr to processing chain");
     }
 
-    // Cloudinary fallback removed - we only use PDF extraction and Tesseract OCR
-
+    logger.info(`Final processing chain: ${chain.join(", ")}`);
     return chain;
   }
 
@@ -254,7 +276,21 @@ export class OcrOrchestrator {
     options: OcrOptions,
     tesseractOcr: any
   ): Promise<Omit<OcrResult, "method" | "processingTime">> {
+    // Safety check: Don't use Tesseract for PDF files
+    const docType = this.getDocumentType(documentUrl);
+    if (docType === "pdf") {
+      throw new OcrError(
+        `Tesseract OCR cannot process PDF files directly: ${documentUrl}`,
+        "tesseract-ocr",
+        undefined,
+        false
+      );
+    }
+
     try {
+      logger.info(
+        `Executing Tesseract OCR for ${docType} document: ${documentUrl}`
+      );
       // Use Tesseract with fallback for better accuracy
       const result = await tesseractOcr.preprocessAndRecognize(documentUrl, {
         enhanceContrast: true,

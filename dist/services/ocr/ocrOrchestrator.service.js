@@ -88,24 +88,42 @@ class OcrOrchestrator {
         throw new ocr_types_1.OcrError(`All OCR methods failed. Last error: ${lastError?.message}`, processingChain[processingChain.length - 1], lastError, false);
     }
     getDocumentType(documentUrl) {
-        const extension = documentUrl.toLowerCase().split(".").pop();
-        if (extension === "pdf") {
-            return "pdf";
+        let detectedType = "unknown";
+        // Check for Cloudinary raw upload URLs (typically PDFs)
+        if (documentUrl.includes("cloudinary.com") &&
+            documentUrl.includes("/raw/upload/")) {
+            detectedType = "pdf";
         }
-        else if (["jpg", "jpeg", "png", "tiff", "bmp", "webp"].includes(extension || "")) {
-            return "image";
+        // Check for Cloudinary image upload URLs
+        else if (documentUrl.includes("cloudinary.com") &&
+            documentUrl.includes("/image/upload/")) {
+            detectedType = "image";
         }
-        return "unknown";
+        else {
+            const extension = documentUrl.toLowerCase().split(".").pop();
+            if (extension === "pdf") {
+                detectedType = "pdf";
+            }
+            else if (["jpg", "jpeg", "png", "tiff", "bmp", "webp"].includes(extension || "")) {
+                detectedType = "image";
+            }
+        }
+        logger_1.default.info(`Document type detected for ${documentUrl}: ${detectedType}`);
+        return detectedType;
     }
     buildProcessingChain(documentType, options) {
         const chain = [];
+        logger_1.default.info(`Building processing chain for document type: ${documentType}`);
         if (documentType === "pdf" && options.enablePdfExtraction) {
             chain.push("pdf-extraction");
+            logger_1.default.info("Added pdf-extraction to processing chain");
         }
-        if (options.enableTesseractOcr) {
+        // Only use Tesseract for image files or unknown types that might be images
+        if (options.enableTesseractOcr && documentType !== "pdf") {
             chain.push("tesseract-ocr");
+            logger_1.default.info("Added tesseract-ocr to processing chain");
         }
-        // Cloudinary fallback removed - we only use PDF extraction and Tesseract OCR
+        logger_1.default.info(`Final processing chain: ${chain.join(", ")}`);
         return chain;
     }
     async executeOcrMethod(method, documentUrl, options) {
@@ -177,7 +195,13 @@ class OcrOrchestrator {
         }
     }
     async executeTesseractOcr(documentUrl, options, tesseractOcr) {
+        // Safety check: Don't use Tesseract for PDF files
+        const docType = this.getDocumentType(documentUrl);
+        if (docType === "pdf") {
+            throw new ocr_types_1.OcrError(`Tesseract OCR cannot process PDF files directly: ${documentUrl}`, "tesseract-ocr", undefined, false);
+        }
         try {
+            logger_1.default.info(`Executing Tesseract OCR for ${docType} document: ${documentUrl}`);
             // Use Tesseract with fallback for better accuracy
             const result = await tesseractOcr.preprocessAndRecognize(documentUrl, {
                 enhanceContrast: true,
