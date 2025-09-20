@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlanParamsDto = exports.SubscriptionParamsDto = exports.UserParamsDto = exports.AdminQueryDto = exports.AdminAuditLogQueryDto = exports.AdminPlanQueryDto = exports.AdminSubscriptionQueryDto = exports.AdminCaseQueryDto = exports.AdminUserQueryDto = exports.BaseAdminQueryDto = exports.UpdateUserRoleDto = exports.UpdateUserStatusDto = void 0;
+exports.AssignLegalBoardDto = exports.AssignCvoDto = exports.CaseParamsDto = exports.PlanParamsDto = exports.SubscriptionParamsDto = exports.UserParamsDto = exports.AdminQueryDto = exports.AdminAuditLogQueryDto = exports.AdminPlanQueryDto = exports.AdminSubscriptionQueryDto = exports.AdminCaseQueryDto = exports.AdminUserQueryDto = exports.BaseAdminQueryDto = exports.UpdateUserRoleDto = exports.UpdateUserStatusDto = void 0;
 const zod_1 = require("zod");
 // Update User Status DTO
 exports.UpdateUserStatusDto = zod_1.z.object({
@@ -116,5 +116,26 @@ exports.PlanParamsDto = zod_1.z.object({
         .string()
         .transform((val) => parseInt(val, 10))
         .refine((val) => !isNaN(val) && val > 0, "Invalid plan ID"),
+});
+// Case ID Parameter DTO
+exports.CaseParamsDto = zod_1.z.object({
+    caseId: zod_1.z
+        .string()
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => !isNaN(val) && val > 0, "Invalid case ID"),
+});
+// Assign CVO DTO
+exports.AssignCvoDto = zod_1.z.object({
+    cvo_id: zod_1.z
+        .number()
+        .int("CVO ID must be an integer")
+        .positive("CVO ID must be positive"),
+});
+// Assign Legal Board DTO
+exports.AssignLegalBoardDto = zod_1.z.object({
+    legal_board_id: zod_1.z
+        .number()
+        .int("Legal board ID must be an integer")
+        .positive("Legal board ID must be positive"),
 });
 //# sourceMappingURL=admin.dto.js.map

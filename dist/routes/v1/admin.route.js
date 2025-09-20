@@ -20,6 +20,10 @@ router.put("/users/:userId/status", auth_middleware_1.authenticate, (0, auth_mid
 router.put("/users/:userId/role", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateAll)(admin_dto_1.UpdateUserRoleDto, undefined, admin_dto_1.UserParamsDto, "user"), admin_controller_1.AdminController.updateUserRole);
 // GET /cases - List all cases
 router.get("/cases", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateQuery)(admin_dto_1.AdminCaseQueryDto, "case"), admin_controller_1.AdminController.getCases);
+// POST /cases/:caseId/assign-cvo - Assign case to CVO
+router.post("/cases/:caseId/assign-cvo", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateAll)(admin_dto_1.AssignCvoDto, undefined, admin_dto_1.CaseParamsDto, "case"), admin_controller_1.AdminController.assignCaseToCVO);
+// POST /cases/:caseId/assign-legal-board - Assign case to legal board
+router.post("/cases/:caseId/assign-legal-board", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateAll)(admin_dto_1.AssignLegalBoardDto, undefined, admin_dto_1.CaseParamsDto, "case"), admin_controller_1.AdminController.assignCaseToLegalBoard);
 // GET /subscriptions - List all subscriptions
 router.get("/subscriptions", auth_middleware_1.authenticate, (0, auth_middleware_1.hasRole)(["admin", "owner"]), (0, rateLimitMiddleware_1.default)(), (0, validation_middleware_1.validateQuery)(admin_dto_1.AdminSubscriptionQueryDto, "subscription"), admin_controller_1.AdminController.getSubscriptions);
 // POST /subscriptions - Create a subscription

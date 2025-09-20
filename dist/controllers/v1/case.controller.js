@@ -43,7 +43,8 @@ CaseController.getCases = (0, errorHandler_middleware_1.asyncHandler)(async (req
 CaseController.getCaseById = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
     const caseId = Number(req.params.caseId);
     const userId = req.user.userId;
-    const caseData = await case_service_1.CaseService.getCaseById(caseId, userId);
+    const userRole = req.user.role; // Add this line
+    const caseData = await case_service_1.CaseService.getCaseById(caseId, userId, userRole);
     res.json({
         success: true,
         message: "Case retrieved successfully",
@@ -77,6 +78,61 @@ CaseController.submitReview = (0, errorHandler_middleware_1.asyncHandler)(async 
         success: true,
         message: "Review submitted successfully",
         data: review,
+    });
+});
+CaseController.getCaseDocumentsForReview = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
+    const caseId = Number(req.params.caseId);
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+    const documents = await case_service_1.CaseService.getCaseDocumentsForReview(caseId, userId, userRole);
+    res.json({
+        success: true,
+        message: "Case documents retrieved successfully",
+        data: documents,
+    });
+});
+CaseController.assignCaseToCVO = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
+    const caseId = Number(req.params.caseId);
+    const { cvo_id } = req.body;
+    const adminId = req.user.userId;
+    const updatedCase = await case_service_1.CaseService.assignCaseToCVO(caseId, cvo_id, adminId);
+    res.json({
+        success: true,
+        message: "Case assigned to CVO successfully",
+        data: updatedCase,
+    });
+});
+CaseController.assignCaseToLegalBoard = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
+    const caseId = Number(req.params.caseId);
+    const { legal_board_id } = req.body;
+    const adminId = req.user.userId;
+    const updatedCase = await case_service_1.CaseService.assignCaseToLegalBoard(caseId, legal_board_id, adminId);
+    res.json({
+        success: true,
+        message: "Case assigned to legal board successfully",
+        data: updatedCase,
+    });
+});
+CaseController.getCasesAssignedToUser = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+    const cases = await case_service_1.CaseService.getCasesAssignedToUser(userId, userRole);
+    res.json({
+        success: true,
+        message: "Assigned cases retrieved successfully",
+        data: cases,
+    });
+});
+CaseController.updateCaseStatus = (0, errorHandler_middleware_1.asyncHandler)(async (req, res, next) => {
+    const caseId = Number(req.params.caseId);
+    const { status } = req.body;
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+    const updatedCase = await case_service_1.CaseService.updateCaseStatus(caseId, status, userId, userRole);
+    res.json({
+        success: true,
+        message: "Case status updated successfully",
+        data: updatedCase,
     });
 });
 //# sourceMappingURL=case.controller.js.map
