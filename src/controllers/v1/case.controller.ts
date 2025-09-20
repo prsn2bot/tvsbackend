@@ -50,8 +50,9 @@ export class CaseController {
     async (req: Request, res: Response, next: NextFunction) => {
       const caseId = Number(req.params.caseId);
       const userId = req.user!.userId;
+      const userRole = req.user!.role; // Add this line
 
-      const caseData = await CaseService.getCaseById(caseId, userId);
+      const caseData = await CaseService.getCaseById(caseId, userId, userRole);
 
       res.json({
         success: true,
@@ -96,6 +97,103 @@ export class CaseController {
         success: true,
         message: "Review submitted successfully",
         data: review,
+      });
+    }
+  );
+
+  static getCaseDocumentsForReview = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const caseId = Number(req.params.caseId);
+      const userId = req.user!.userId;
+      const userRole = req.user!.role;
+
+      const documents = await CaseService.getCaseDocumentsForReview(
+        caseId,
+        userId,
+        userRole
+      );
+
+      res.json({
+        success: true,
+        message: "Case documents retrieved successfully",
+        data: documents,
+      });
+    }
+  );
+
+  static assignCaseToCVO = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const caseId = Number(req.params.caseId);
+      const { cvo_id } = req.body;
+      const adminId = req.user!.userId;
+
+      const updatedCase = await CaseService.assignCaseToCVO(
+        caseId,
+        cvo_id,
+        adminId
+      );
+
+      res.json({
+        success: true,
+        message: "Case assigned to CVO successfully",
+        data: updatedCase,
+      });
+    }
+  );
+
+  static assignCaseToLegalBoard = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const caseId = Number(req.params.caseId);
+      const { legal_board_id } = req.body;
+      const adminId = req.user!.userId;
+
+      const updatedCase = await CaseService.assignCaseToLegalBoard(
+        caseId,
+        legal_board_id,
+        adminId
+      );
+
+      res.json({
+        success: true,
+        message: "Case assigned to legal board successfully",
+        data: updatedCase,
+      });
+    }
+  );
+
+  static getCasesAssignedToUser = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const userId = req.user!.userId;
+      const userRole = req.user!.role;
+
+      const cases = await CaseService.getCasesAssignedToUser(userId, userRole);
+
+      res.json({
+        success: true,
+        message: "Assigned cases retrieved successfully",
+        data: cases,
+      });
+    }
+  );
+
+  static updateCaseStatus = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const caseId = Number(req.params.caseId);
+      const { status } = req.body;
+      const userId = req.user!.userId;
+      const userRole = req.user!.role;
+
+      const updatedCase = await CaseService.updateCaseStatus(
+        caseId,
+        status,
+        userId,
+        userRole
+      );
+
+      res.json({
+        success: true,
+        message: "Case status updated successfully",
+        data: updatedCase,
       });
     }
   );

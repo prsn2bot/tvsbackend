@@ -71,4 +71,57 @@ router.post(
   CaseController.submitReview
 );
 
+// GET /:caseId/documents - Get case documents for review
+router.get(
+  "/:caseId/documents",
+  authenticate,
+  hasRole(["cvo", "legal_board", "owner"]),
+  rateLimitMiddleware(),
+  subscriptionFeatureMiddleware,
+  validateParams(CaseParamsDto, "case"),
+  CaseController.getCaseDocumentsForReview
+);
+
+// POST /:caseId/assign-cvo - Assign case to CVO (admin only)
+router.post(
+  "/:caseId/assign-cvo",
+  authenticate,
+  hasRole(["admin", "owner"]),
+  rateLimitMiddleware(),
+  subscriptionFeatureMiddleware,
+  validateParams(CaseParamsDto, "case"),
+  CaseController.assignCaseToCVO
+);
+
+// POST /:caseId/assign-legal-board - Assign case to legal board (admin only)
+router.post(
+  "/:caseId/assign-legal-board",
+  authenticate,
+  hasRole(["admin", "owner"]),
+  rateLimitMiddleware(),
+  subscriptionFeatureMiddleware,
+  validateParams(CaseParamsDto, "case"),
+  CaseController.assignCaseToLegalBoard
+);
+
+// GET /assigned - Get cases assigned to current user
+router.get(
+  "/assigned",
+  authenticate,
+  hasRole(["cvo", "legal_board"]),
+  rateLimitMiddleware(),
+  subscriptionFeatureMiddleware,
+  CaseController.getCasesAssignedToUser
+);
+
+// PUT /:caseId/status - Update case status
+router.put(
+  "/:caseId/status",
+  authenticate,
+  rateLimitMiddleware(),
+  subscriptionFeatureMiddleware,
+  validateParams(CaseParamsDto, "case"),
+  CaseController.updateCaseStatus
+);
+
 export default router;

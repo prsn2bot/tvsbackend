@@ -359,4 +359,131 @@ export class CaseModel {
       updated_at: row.updated_at,
     };
   }
+
+  /**
+   * Find all documents for a specific case
+   * @param caseId - The case ID to find documents for
+   * @returns Promise<Document[]> - Array of documents for the case
+   */
+  static async findDocumentsByCaseId(caseId: number): Promise<Document[]> {
+    const query = `SELECT * FROM documents WHERE case_id = $1 ORDER BY uploaded_at ASC`;
+    const result = await pool.query(query, [caseId]);
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      case_id: row.case_id,
+      original_filename: row.original_filename,
+      cloudinary_public_id: row.cloudinary_public_id,
+      secure_url: row.secure_url,
+      file_type: row.file_type,
+      file_size_bytes: row.file_size_bytes,
+      ocr_text: row.ocr_text,
+      ocr_status: row.ocr_status,
+      ocr_method_used: row.ocr_method_used,
+      ocr_confidence: row.ocr_confidence,
+      ocr_processing_time: row.ocr_processing_time,
+      ocr_retry_count: row.ocr_retry_count,
+      ocr_error_details: row.ocr_error_details,
+      ocr_last_attempt: row.ocr_last_attempt,
+      vector_embedding: row.vector_embedding,
+      uploaded_at: row.uploaded_at,
+    }));
+  }
+
+  /**
+   * Assign a case to a CVO
+   * @param caseId - The case ID to assign
+   * @param cvoId - The CVO user ID
+   * @returns Promise<Case | null> - The updated case or null if not found
+   */
+  static async assignCVO(caseId: number, cvoId: number): Promise<Case | null> {
+    const query = `
+      UPDATE cases
+      SET assigned_cvo_id = $1, status = 'awaiting_cvo_review', updated_at = NOW()
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const result = await pool.query(query, [cvoId, caseId]);
+    if (result.rows.length === 0) return null;
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      officer_user_id: row.officer_user_id,
+      case_title: row.case_title,
+      status: row.status,
+      assigned_cvo_id: row.assigned_cvo_id,
+      assigned_legal_board_id: row.assigned_legal_board_id,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
+  }
+
+  /**
+   * Assign a case to a legal board member
+   * @param caseId - The case ID to assign
+   * @param legalBoardId - The legal board user ID
+   * @returns Promise<Case | null> - The updated case or null if not found
+   */
+  static async assignLegalBoard(
+    caseId: number,
+    legalBoardId: number
+  ): Promise<Case | null> {
+    const query = `
+      UPDATE cases
+      SET assigned_legal_board_id = $1, status = 'awaiting_legal_review', updated_at = NOW()
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const result = await pool.query(query, [legalBoardId, caseId]);
+    if (result.rows.length === 0) return null;
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      officer_user_id: row.officer_user_id,
+      case_title: row.case_title,
+      status: row.status,
+      assigned_cvo_id: row.assigned_cvo_id,
+      assigned_legal_board_id: row.assigned_legal_board_id,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
+  }
+
+  /**
+   * Find cases assigned to a specific user (CVO or Legal Board)
+   * @param userId - The user ID to find assigned cases for
+   * @param userRole - The role of the user ('cvo' or 'legal_board')
+   * @returns Promise<Case[]> - Array of assigned cases
+   */
+  static async findCasesByAssignedUser(
+    userId: number,
+    userRole: string
+  ): Promise<Case[]> {
+    let query: string;
+    let params: any[];
+
+    if (userRole === "cvo") {
+      query = `SELECT * FROM cases WHERE assigned_cvo_id = $1 ORDER BY updated_at DESC`;
+      params = [userId];
+    } else if (userRole === "legal_board") {
+      query = `SELECT * FROM cases WHERE assigned_legal_board_id = $1 ORDER BY updated_at DESC`;
+      params = [userId];
+    } else {
+      throw new Error("Invalid user role for assignment lookup");
+    }
+
+    const result = await pool.query(query, params);
+    return result.rows.map((row) => ({
+      id: row.id,
+      officer_user_id: row.officer_user_id,
+      case_title: row.case_title,
+      status: row.status,
+      assigned_cvo_id: row.assigned_cvo_id,
+      assigned_legal_board_id: row.assigned_legal_board_id,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }));
+  }
 }
