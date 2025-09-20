@@ -90,6 +90,48 @@ export class AdminController {
     }
   );
 
+  // POST /cases/:caseId/assign-cvo - Assign case to CVO
+  static assignCaseToCVO = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const caseId = Number(req.params.caseId);
+      const { cvo_id } = req.body;
+      const adminId = req.user!.userId;
+
+      const updatedCase = await CaseService.assignCaseToCVO(
+        caseId,
+        cvo_id,
+        adminId
+      );
+
+      res.json({
+        success: true,
+        message: "Case assigned to CVO successfully",
+        data: updatedCase,
+      });
+    }
+  );
+
+  // POST /cases/:caseId/assign-legal-board - Assign case to legal board
+  static assignCaseToLegalBoard = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const caseId = Number(req.params.caseId);
+      const { legal_board_id } = req.body;
+      const adminId = req.user!.userId;
+
+      const updatedCase = await CaseService.assignCaseToLegalBoard(
+        caseId,
+        legal_board_id,
+        adminId
+      );
+
+      res.json({
+        success: true,
+        message: "Case assigned to legal board successfully",
+        data: updatedCase,
+      });
+    }
+  );
+
   // GET /subscriptions - List all subscriptions
   static getSubscriptions = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {

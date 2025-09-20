@@ -40,6 +40,16 @@ router.get(
   CaseController.getCases
 );
 
+// GET /assigned - Get cases assigned to current user
+router.get(
+  "/assigned",
+  authenticate,
+  hasRole(["cvo", "legal_board"]),
+  rateLimitMiddleware(),
+  subscriptionFeatureMiddleware,
+  CaseController.getCasesAssignedToUser
+);
+
 // GET /:caseId - Get a specific case
 router.get(
   "/:caseId",
@@ -102,16 +112,6 @@ router.post(
   subscriptionFeatureMiddleware,
   validateParams(CaseParamsDto, "case"),
   CaseController.assignCaseToLegalBoard
-);
-
-// GET /assigned - Get cases assigned to current user
-router.get(
-  "/assigned",
-  authenticate,
-  hasRole(["cvo", "legal_board"]),
-  rateLimitMiddleware(),
-  subscriptionFeatureMiddleware,
-  CaseController.getCasesAssignedToUser
 );
 
 // PUT /:caseId/status - Update case status

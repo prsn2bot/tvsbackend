@@ -127,6 +127,30 @@ export const PlanParamsDto = z.object({
     .refine((val) => !isNaN(val) && val > 0, "Invalid plan ID"),
 });
 
+// Case ID Parameter DTO
+export const CaseParamsDto = z.object({
+  caseId: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => !isNaN(val) && val > 0, "Invalid case ID"),
+});
+
+// Assign CVO DTO
+export const AssignCvoDto = z.object({
+  cvo_id: z
+    .number()
+    .int("CVO ID must be an integer")
+    .positive("CVO ID must be positive"),
+});
+
+// Assign Legal Board DTO
+export const AssignLegalBoardDto = z.object({
+  legal_board_id: z
+    .number()
+    .int("Legal board ID must be an integer")
+    .positive("Legal board ID must be positive"),
+});
+
 // Export types
 export type UpdateUserStatusDtoType = z.infer<typeof UpdateUserStatusDto>;
 export type UpdateUserRoleDtoType = z.infer<typeof UpdateUserRoleDto>;
@@ -141,3 +165,6 @@ export type AdminAuditLogQueryDtoType = z.infer<typeof AdminAuditLogQueryDto>;
 export type UserParamsDtoType = z.infer<typeof UserParamsDto>;
 export type SubscriptionParamsDtoType = z.infer<typeof SubscriptionParamsDto>;
 export type PlanParamsDtoType = z.infer<typeof PlanParamsDto>;
+export type CaseParamsDtoType = z.infer<typeof CaseParamsDto>;
+export type AssignCvoDtoType = z.infer<typeof AssignCvoDto>;
+export type AssignLegalBoardDtoType = z.infer<typeof AssignLegalBoardDto>;

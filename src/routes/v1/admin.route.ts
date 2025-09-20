@@ -20,6 +20,9 @@ import {
   UserParamsDto,
   SubscriptionParamsDto,
   PlanParamsDto,
+  CaseParamsDto,
+  AssignCvoDto,
+  AssignLegalBoardDto,
 } from "../../dto/admin.dto";
 import {
   CreateSubscriptionDto,
@@ -67,6 +70,26 @@ router.get(
   rateLimitMiddleware(),
   validateQuery(AdminCaseQueryDto, "case"),
   AdminController.getCases
+);
+
+// POST /cases/:caseId/assign-cvo - Assign case to CVO
+router.post(
+  "/cases/:caseId/assign-cvo",
+  authenticate,
+  hasRole(["admin", "owner"]),
+  rateLimitMiddleware(),
+  validateAll(AssignCvoDto, undefined, CaseParamsDto, "case"),
+  AdminController.assignCaseToCVO
+);
+
+// POST /cases/:caseId/assign-legal-board - Assign case to legal board
+router.post(
+  "/cases/:caseId/assign-legal-board",
+  authenticate,
+  hasRole(["admin", "owner"]),
+  rateLimitMiddleware(),
+  validateAll(AssignLegalBoardDto, undefined, CaseParamsDto, "case"),
+  AdminController.assignCaseToLegalBoard
 );
 
 // GET /subscriptions - List all subscriptions
