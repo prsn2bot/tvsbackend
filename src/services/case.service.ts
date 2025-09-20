@@ -1,5 +1,6 @@
 import { CaseModel } from "../models/case.model";
 import { addAiProcessingJob } from "../jobs/queue";
+import { ErrorHelpers } from "../utils/errorHelpers";
 
 export class CaseService {
   static async createCase(
@@ -23,15 +24,19 @@ export class CaseService {
   }
 
   static async getCaseById(caseId: number, userId: number, userRole?: string) {
+    if (!caseId) {
+      throw ErrorHelpers.badRequest("Case ID is required");
+    }
+
     const caseData = await CaseModel.findById(caseId);
     if (!caseData) {
-      throw new Error("Case not found");
+      throw ErrorHelpers.notFound("Case");
     }
 
     // Role-based access control
     const hasAccess = this.checkCaseAccess(caseData, userId, userRole);
     if (!hasAccess) {
-      throw new Error("Access denied");
+      throw ErrorHelpers.forbidden("Access denied to this case");
     }
 
     return caseData;
@@ -99,11 +104,20 @@ export class CaseService {
     reviewerId: number,
     reviewData: { review_text: string; decision: string }
   ) {
+    if (!caseId || !reviewerId) {
+      throw ErrorHelpers.badRequest("Case ID and reviewer ID are required");
+    }
+
+    if (!reviewData.review_text || !reviewData.decision) {
+      throw ErrorHelpers.missingFields(["review_text", "decision"]);
+    }
+
     // Verify case exists
     const caseData = await CaseModel.findById(caseId);
     if (!caseData) {
-      throw new Error("Case not found");
+      throw ErrorHelpers.notFound("Case");
     }
+
     const review = await CaseModel.createReview({
       ...reviewData,
       case_id: caseId,
@@ -125,15 +139,19 @@ export class CaseService {
     userId: number,
     userRole?: string
   ) {
+    if (!caseId) {
+      throw ErrorHelpers.badRequest("Case ID is required");
+    }
+
     const caseData = await CaseModel.findById(caseId);
     if (!caseData) {
-      throw new Error("Case not found");
+      throw ErrorHelpers.notFound("Case");
     }
 
     // Check if user has access to this case for review
     const hasAccess = this.checkCaseAccess(caseData, userId, userRole);
     if (!hasAccess) {
-      throw new Error("Access denied");
+      throw ErrorHelpers.forbidden("Access denied to case documents");
     }
 
     // Get documents for this case
@@ -142,10 +160,14 @@ export class CaseService {
   }
 
   static async assignCaseToCVO(caseId: number, cvoId: number, adminId: number) {
+    if (!caseId || !cvoId || !adminId) {
+      throw ErrorHelpers.missingFields(["caseId", "cvoId", "adminId"]);
+    }
+
     // Verify admin access
     const adminCaseData = await CaseModel.findById(caseId);
     if (!adminCaseData) {
-      throw new Error("Case not found");
+      throw ErrorHelpers.notFound("Case");
     }
 
     // Only admin/owner can assign cases
@@ -153,12 +175,12 @@ export class CaseService {
       this.checkCaseAccess(adminCaseData, adminId, "admin") ||
       this.checkCaseAccess(adminCaseData, adminId, "owner");
     if (!hasAccess) {
-      throw new Error("Access denied - only admin/owner can assign cases");
+      throw ErrorHelpers.forbidden("Only admin/owner can assign cases");
     }
 
     const updatedCase = await CaseModel.assignCVO(caseId, cvoId);
     if (!updatedCase) {
-      throw new Error("Failed to assign case to CVO");
+      throw ErrorHelpers.internalError("Failed to assign case to CVO");
     }
 
     return updatedCase;
@@ -169,10 +191,14 @@ export class CaseService {
     legalBoardId: number,
     adminId: number
   ) {
+    if (!caseId || !legalBoardId || !adminId) {
+      throw ErrorHelpers.missingFields(["caseId", "legalBoardId", "adminId"]);
+    }
+
     // Verify admin access
     const adminCaseData = await CaseModel.findById(caseId);
     if (!adminCaseData) {
-      throw new Error("Case not found");
+      throw ErrorHelpers.notFound("Case");
     }
 
     // Only admin/owner can assign cases
@@ -180,20 +206,26 @@ export class CaseService {
       this.checkCaseAccess(adminCaseData, adminId, "admin") ||
       this.checkCaseAccess(adminCaseData, adminId, "owner");
     if (!hasAccess) {
-      throw new Error("Access denied - only admin/owner can assign cases");
+      throw ErrorHelpers.forbidden("Only admin/owner can assign cases");
     }
 
     const updatedCase = await CaseModel.assignLegalBoard(caseId, legalBoardId);
     if (!updatedCase) {
-      throw new Error("Failed to assign case to legal board");
+      throw ErrorHelpers.internalError("Failed to assign case to legal board");
     }
 
     return updatedCase;
   }
 
   static async getCasesAssignedToUser(userId: number, userRole: string) {
+    if (!userId || !userRole) {
+      throw ErrorHelpers.missingFields(["userId", "userRole"]);
+    }
+
     if (userRole !== "cvo" && userRole !== "legal_board") {
-      throw new Error("Only CVO and legal board roles can have assigned cases");
+      throw ErrorHelpers.forbidden(
+        "Only CVO and legal board roles can have assigned cases"
+      );
     }
 
     const cases = await CaseModel.findCasesByAssignedUser(userId, userRole);
@@ -206,20 +238,39 @@ export class CaseService {
     userId: number,
     userRole?: string
   ) {
+    if (!caseId || !status || !userId) {
+      throw ErrorHelpers.missingFields(["caseId", "status", "userId"]);
+    }
+
+    const validStatuses = [
+      "draft",
+      "submitted",
+      "under_review",
+      "awaiting_cvo_review",
+      "awaiting_legal_review",
+      "approved",
+      "rejected",
+    ];
+    if (!validStatuses.includes(status)) {
+      throw ErrorHelpers.invalidInput(
+        `Invalid status. Must be one of: ${validStatuses.join(", ")}`
+      );
+    }
+
     const caseData = await CaseModel.findById(caseId);
     if (!caseData) {
-      throw new Error("Case not found");
+      throw ErrorHelpers.notFound("Case");
     }
 
     // Check if user has access to this case
     const hasAccess = this.checkCaseAccess(caseData, userId, userRole);
     if (!hasAccess) {
-      throw new Error("Access denied");
+      throw ErrorHelpers.forbidden("Access denied to update this case");
     }
 
     const updatedCase = await CaseModel.updateCaseStatus(caseId, status);
     if (!updatedCase) {
-      throw new Error("Failed to update case status");
+      throw ErrorHelpers.internalError("Failed to update case status");
     }
 
     return updatedCase;

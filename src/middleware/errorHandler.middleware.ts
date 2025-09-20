@@ -95,6 +95,30 @@ export const errorHandler = (
     // Network/connection errors
     statusCode = 503;
     response.message = "Service temporarily unavailable";
+  } else if (
+    error.message.toLowerCase().includes("user not found") ||
+    error.message.toLowerCase().includes("invalid password") ||
+    error.message.toLowerCase().includes("invalid email") ||
+    error.message.toLowerCase().includes("invalid credentials")
+  ) {
+    // Authentication errors
+    statusCode = 401;
+    response.message = error.message;
+  } else if (
+    error.message.toLowerCase().includes("already exists") ||
+    error.message.toLowerCase().includes("duplicate")
+  ) {
+    // Conflict errors
+    statusCode = 409;
+    response.message = error.message;
+  } else if (
+    error.message.toLowerCase().includes("required") ||
+    error.message.toLowerCase().includes("invalid") ||
+    error.message.toLowerCase().includes("missing")
+  ) {
+    // Validation errors
+    statusCode = 400;
+    response.message = error.message;
   }
 
   // Include stack trace in development

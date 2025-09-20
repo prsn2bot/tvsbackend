@@ -1,4 +1,5 @@
 import logger from "../utils/logger";
+import { ErrorHelpers } from "../utils/errorHelpers";
 
 /**
  * Result interface for AI draft generation
@@ -48,6 +49,10 @@ async function callApiWithRetry<T>(
  * @returns Promise<AiResult> - The generated draft with scores
  */
 export const generateDraftWithAI = async (text: string): Promise<AiResult> => {
+  if (!text || text.trim().length === 0) {
+    throw ErrorHelpers.badRequest("Text content is required for AI processing");
+  }
+
   logger.info(`Sending text to AI for draft generation...`);
 
   try {
@@ -114,7 +119,9 @@ Do NOT include any additional text, explanations, or formatting outside this JSO
     const cleanedText = finalText.trim();
 
     if (!cleanedText) {
-      throw new Error("Empty response from AI model.");
+      throw ErrorHelpers.serviceUnavailable(
+        "AI service returned empty response"
+      );
     }
 
     // Clean the response by removing markdown code blocks if present
@@ -135,7 +142,9 @@ Do NOT include any additional text, explanations, or formatting outside this JSO
         typeof result.defenceScore !== "number" ||
         typeof result.confidenceScore !== "number"
       ) {
-        throw new Error("Invalid response structure from AI model");
+        throw ErrorHelpers.serviceUnavailable(
+          "AI service returned invalid response format"
+        );
       }
 
       logger.info(`AI draft generation completed successfully`);
@@ -146,11 +155,16 @@ Do NOT include any additional text, explanations, or formatting outside this JSO
       };
     } catch (parseError) {
       logger.error(`Failed to parse AI response:`, parseError);
-      throw new Error("Failed to parse AI response");
+      throw ErrorHelpers.serviceUnavailable("Failed to parse AI response");
     }
   } catch (error) {
     logger.error(`Failed to generate AI draft:`, error);
-    throw new Error("AI draft generation failed");
+    if (error instanceof Error && error.message.includes("rate limit")) {
+      throw ErrorHelpers.serviceUnavailable(
+        "AI service rate limit exceeded. Please try again later."
+      );
+    }
+    throw ErrorHelpers.serviceUnavailable("AI draft generation failed");
   }
 };
 
@@ -166,6 +180,12 @@ Do NOT include any additional text, explanations, or formatting outside this JSO
 export const createVectorEmbedding = async (
   text: string
 ): Promise<number[]> => {
+  if (!text || text.trim().length === 0) {
+    throw ErrorHelpers.badRequest(
+      "Text content is required for embedding generation"
+    );
+  }
+
   logger.info(`Creating vector embedding for text...`);
 
   try {
@@ -187,6 +207,6 @@ export const createVectorEmbedding = async (
     return mockEmbedding;
   } catch (error) {
     logger.error(`Failed to create vector embedding:`, error);
-    throw new Error("Vector embedding creation failed");
+    throw ErrorHelpers.serviceUnavailable("Vector embedding creation failed");
   }
 };

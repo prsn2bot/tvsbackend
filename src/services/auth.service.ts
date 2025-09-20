@@ -4,6 +4,7 @@ import { User } from "../types/user.types";
 import { TokenResponse, JwtPayload } from "../types/auth.types";
 import { AuthModel } from "../models/auth.model";
 import { JWT_SECRET } from "../config/env";
+import { ErrorHelpers } from "../utils/errorHelpers";
 
 export class AuthService {
   static async register(
@@ -13,15 +14,15 @@ export class AuthService {
   ): Promise<User> {
     // Validate input
     if (!email || !password) {
-      throw new Error("Email and password are required");
+      throw ErrorHelpers.missingFields(["email", "password"]);
     }
     if (!["officer", "cvo", "legal_board", "admin", "owner"].includes(role)) {
-      throw new Error("Invalid role");
+      throw ErrorHelpers.invalidInput("Invalid role");
     }
     // Check if user already exists
     const existingUser = await AuthModel.getUserByEmail(email);
     if (existingUser) {
-      throw new Error("User already exists");
+      throw ErrorHelpers.userAlreadyExists();
     }
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -35,9 +36,9 @@ export class AuthService {
 
   static async login(email: string, password: string): Promise<TokenResponse> {
     const user = await AuthModel.getUserByEmail(email);
-    if (!user) throw new Error("User not found");
+    if (!user) throw ErrorHelpers.invalidCredentials();
     const isValid = await bcrypt.compare(password, user.password_hash);
-    if (!isValid) throw new Error("Invalid password");
+    if (!isValid) throw ErrorHelpers.invalidCredentials();
     const accessToken = jwt.sign(
       {
         userId: user.id,
@@ -58,7 +59,7 @@ export class AuthService {
     try {
       const decoded = jwt.verify(refreshToken, JWT_SECRET) as JwtPayload;
       const user = await AuthModel.getUserByEmail(decoded.email);
-      if (!user) throw new Error("User not found");
+      if (!user) throw ErrorHelpers.userNotFound();
       const accessToken = jwt.sign(
         {
           userId: user.id,
@@ -74,7 +75,13 @@ export class AuthService {
       });
       return { accessToken, refreshToken: newRefreshToken };
     } catch (error) {
-      throw new Error("Invalid refresh token");
+      if (error instanceof Error && error.name === "JsonWebTokenError") {
+        throw ErrorHelpers.invalidToken();
+      }
+      if (error instanceof Error && error.name === "TokenExpiredError") {
+        throw ErrorHelpers.tokenExpired();
+      }
+      throw ErrorHelpers.invalidToken("Invalid refresh token");
     }
   }
 }
