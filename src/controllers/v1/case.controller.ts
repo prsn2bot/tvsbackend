@@ -67,12 +67,18 @@ export class CaseController {
       const caseId = Number(req.params.caseId);
       const { cloudinary_public_id, secure_url, ocr_text } = req.body;
       const userId = req.user!.userId;
+      const userRole = req.user!.role;
 
-      const document = await CaseService.addDocument(caseId, userId, {
-        cloudinary_public_id,
-        secure_url,
-        ocr_text,
-      });
+      const document = await CaseService.addDocument(
+        caseId,
+        userId,
+        {
+          cloudinary_public_id,
+          secure_url,
+          ocr_text,
+        },
+        userRole
+      );
 
       res.status(201).json({
         success: true,

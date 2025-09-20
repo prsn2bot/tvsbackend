@@ -12,6 +12,13 @@ const subscriptionFeatureMiddleware = async (
     }
 
     const userId = req.user.userId;
+    const userRole = req.user.role;
+
+    // Bypass subscription check for admin and owner roles
+    if (userRole === "admin" || userRole === "owner") {
+      return next();
+    }
+
     const subscription = await SubscriptionService.getSubscriptionByUserId(
       userId
     );

@@ -48,9 +48,9 @@ class CaseService {
         }
         return false;
     }
-    static async addDocument(caseId, userId, documentData) {
-        // Verify case ownership
-        await this.getCaseById(caseId, userId);
+    static async addDocument(caseId, userId, documentData, userRole) {
+        // Verify case access
+        await this.getCaseById(caseId, userId, userRole);
         const document = await case_model_1.CaseModel.createDocument({
             ...documentData,
             case_id: caseId,

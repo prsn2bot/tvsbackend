@@ -78,10 +78,11 @@ export class CaseService {
       cloudinary_public_id: string;
       secure_url: string;
       ocr_text?: string;
-    }
+    },
+    userRole?: string
   ) {
-    // Verify case ownership
-    await this.getCaseById(caseId, userId);
+    // Verify case access
+    await this.getCaseById(caseId, userId, userRole);
     const document = await CaseModel.createDocument({
       ...documentData,
       case_id: caseId,

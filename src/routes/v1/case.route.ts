@@ -46,7 +46,7 @@ router.get(
   authenticate,
   hasRole(["cvo", "legal_board"]),
   rateLimitMiddleware(),
-  subscriptionFeatureMiddleware,
+  // subscriptionFeatureMiddleware,
   CaseController.getCasesAssignedToUser
 );
 
@@ -76,7 +76,7 @@ router.post(
   authenticate,
   hasRole(["cvo", "legal_board", "owner"]),
   rateLimitMiddleware(),
-  subscriptionFeatureMiddleware,
+  // subscriptionFeatureMiddleware,
   validateAll(SubmitReviewDto, undefined, CaseParamsDto, "case"),
   CaseController.submitReview
 );
@@ -87,7 +87,7 @@ router.get(
   authenticate,
   hasRole(["cvo", "legal_board", "owner"]),
   rateLimitMiddleware(),
-  subscriptionFeatureMiddleware,
+  // subscriptionFeatureMiddleware,
   validateParams(CaseParamsDto, "case"),
   CaseController.getCaseDocumentsForReview
 );
@@ -98,7 +98,7 @@ router.post(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  subscriptionFeatureMiddleware,
+  // subscriptionFeatureMiddleware,
   validateParams(CaseParamsDto, "case"),
   CaseController.assignCaseToCVO
 );
@@ -109,7 +109,7 @@ router.post(
   authenticate,
   hasRole(["admin", "owner"]),
   rateLimitMiddleware(),
-  subscriptionFeatureMiddleware,
+  // subscriptionFeatureMiddleware,
   validateParams(CaseParamsDto, "case"),
   CaseController.assignCaseToLegalBoard
 );

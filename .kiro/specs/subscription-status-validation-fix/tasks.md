@@ -53,7 +53,8 @@
   - Ensure error messages clearly indicate the expected entity type
   - _Requirements: 1.4, 4.3, 4.4_
 
-- [x] 8. Add parameter validation tests for subscription routes
+- [ ] 8. Add parameter validation tests for subscription routes
+
 
   - Write tests for subscription ID parameter validation in PUT and DELETE routes
   - Test invalid ID formats (non-numeric, negative numbers, zero)
